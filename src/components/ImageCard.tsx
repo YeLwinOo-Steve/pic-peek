@@ -38,14 +38,11 @@ const ImageCard = ({ image, isBest, onRemove }: ImageCardProps) => {
       >
         <X className="h-4 w-4" />
       </Button>
-      <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden">
-        <img
-          src={image.url}
-          alt="Comparison"
-          className="w-full h-full object-contain"
-          loading="lazy"
-        />
-      </div>
+      <div
+        className="aspect-video bg-muted flex items-center justify-center overflow-hidden bg-center bg-no-repeat bg-contain"
+        style={{ backgroundImage: `url(${image.url})` }}
+        aria-label="Comparison image"
+      />
       <CardContent className="p-4 space-y-2">
         <div className="grid grid-cols-2 gap-2 text-sm">
           <Property label="Width" value={`${image.width}px`} />
@@ -62,7 +59,7 @@ const ImageCard = ({ image, isBest, onRemove }: ImageCardProps) => {
 };
 
 const Property = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex justify-between items-center bg-muted/60 rounded-md px-2 py-1">
+  <div className="flex justify-between items-center bg-muted/60 rounded-md px-2 py-2">
     <span className="text-muted-foreground text-xs">{label}</span>
     <span className="font-semibold text-foreground text-xs">{value}</span>
   </div>

@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Plus, Download, Copy, Trash2, Image as ImageIcon } from "lucide-react";
 import ImageCard, { type ImageData } from "@/components/ImageCard";
-import html2canvas from "html2canvas";
+import * as htmlToImage from "html-to-image";
 
 function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
@@ -46,6 +47,7 @@ const Index = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [comparisonPadding, setComparisonPadding] = useState(24);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const addImage = useCallback(async () => {
@@ -108,19 +110,97 @@ const Index = () => {
   const captureGrid = async (): Promise<HTMLCanvasElement | null> => {
     if (!gridRef.current) return null;
     const el = gridRef.current;
-    const rect = el.getBoundingClientRect();
-    const canvas = await html2canvas(el, {
-      useCORS: true,
-      backgroundColor: window.getComputedStyle(document.body).backgroundColor || "#ffffff",
-      scale: 2,
-      width: rect.width,
-      height: rect.height,
-      x: 0,
-      y: 0,
-      scrollX: 0,
-      scrollY: 0,
-    });
-    return canvas;
+
+    // Ensure web fonts are loaded before snapshotting (prevents "wonky" text)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (document as any).fonts?.ready;
+    } catch {
+      // ignore
+    }
+
+    // Temporarily hide the dotted border while capturing so it doesn't
+    // appear in the exported image.
+    const prevBorder = el.style.border;
+    const prevBorderColor = el.style.borderColor;
+
+    let baseCanvas: HTMLCanvasElement;
+    try {
+      el.style.border = "2px dashed transparent";
+      el.style.borderColor = "transparent";
+
+      // Capture the grid exactly as rendered on screen
+      baseCanvas = await htmlToImage.toCanvas(el, {
+        backgroundColor: "#ffffff",
+        pixelRatio: window.devicePixelRatio || 2,
+        cacheBust: true,
+      });
+    } finally {
+      el.style.border = prevBorder;
+      el.style.borderColor = prevBorderColor;
+    }
+
+    const srcWidth = baseCanvas.width;
+    const srcHeight = baseCanvas.height;
+
+    const cropX = 0;
+    const cropY = 0;
+    const finalCropW = srcWidth;
+    const finalCropH = srcHeight;
+
+    // Add watermark to a copy so we keep the original capture untouched
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = finalCropW;
+    outCanvas.height = finalCropH;
+    const ctx = outCanvas.getContext("2d");
+    if (!ctx) return baseCanvas;
+
+    // Draw captured UI
+    ctx.drawImage(
+      baseCanvas,
+      cropX,
+      cropY,
+      finalCropW,
+      finalCropH,
+      0,
+      0,
+      finalCropW,
+      finalCropH,
+    );
+
+    // Watermark in bottom-right corner
+    const padding = Math.round(outCanvas.width * 0.02); // 2% padding
+    const fontSize = Math.max(12, Math.round(outCanvas.width * 0.018));
+    ctx.font = `${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif`;
+    ctx.textBaseline = "bottom";
+
+    const watermarkText = "image-comparer";
+    const textMetrics = ctx.measureText(watermarkText);
+    const textWidth = textMetrics.width;
+    const x = outCanvas.width - textWidth - padding;
+    const y = outCanvas.height - padding;
+
+    // Subtle background for legibility
+    const boxPaddingX = padding * 0.5;
+    const boxPaddingY = padding * 0.4;
+    const boxX = x - boxPaddingX;
+    const boxY = y - fontSize - boxPaddingY * 0.5;
+    const boxW = textWidth + boxPaddingX * 2;
+    const boxH = fontSize + boxPaddingY;
+
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.roundRect?.(boxX, boxY, boxW, boxH, Math.min(8, boxH / 2));
+    if (!ctx.roundRect) {
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+    } else {
+      ctx.fill();
+    }
+
+    // Watermark text
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.fillText(watermarkText, x, y);
+
+    return outCanvas;
   };
 
   const copyComparison = async () => {
@@ -190,7 +270,7 @@ const Index = () => {
         </form>
 
         {images.length > 0 && (
-          <div className="flex gap-2 mt-4 flex-wrap">
+          <div className="flex gap-2 mt-4 flex-wrap items-center">
             <Button variant="outline" size="sm" onClick={copyComparison}>
               <Copy className="h-4 w-4 mr-1" /> Copy
             </Button>
@@ -200,9 +280,26 @@ const Index = () => {
             <Button variant="outline" size="sm" onClick={clearAll}>
               <Trash2 className="h-4 w-4 mr-1" /> Clear All
             </Button>
-            <span className="ml-auto text-sm text-muted-foreground self-center">
-              {images.length}/9 images
-            </span>
+            <div className="ml-auto flex items-center gap-3 min-w-[180px]">
+              <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                Padding
+              </span>
+              <div className="w-32">
+                <Slider
+                  min={0}
+                  max={64}
+                  step={2}
+                  value={[comparisonPadding]}
+                  onValueChange={(vals) => {
+                    const [v] = vals;
+                    if (typeof v === "number") setComparisonPadding(v);
+                  }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {images.length}/9
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -218,10 +315,16 @@ const Index = () => {
             <p className="text-muted-foreground text-sm">Paste an image URL above to get started</p>
           </div>
         ) : (
-          <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {images.map((img) => (
-              <ImageCard key={img.id} image={img} isBest={img.id === bestId} onRemove={removeImage} />
-            ))}
+          <div
+            ref={gridRef}
+            className="rounded-3xl border-2 border-dashed border-muted-foreground/50 bg-card/40"
+            style={{ padding: `${comparisonPadding}px` }}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {images.map((img) => (
+                <ImageCard key={img.id} image={img} isBest={img.id === bestId} onRemove={removeImage} />
+              ))}
+            </div>
           </div>
         )}
       </div>
