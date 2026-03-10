@@ -374,7 +374,6 @@ const Index = () => {
         >
           <Button
             type="button"
-            variant="outline"
             onClick={() => fileInputRef.current?.click()}
           >
             <ImageIcon className="h-4 w-4 mr-1" /> Upload Image
