@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 
-import { X } from "lucide-react";
+import { X, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface ImageData {
@@ -24,8 +24,8 @@ const ImageCard = ({ image, isBest, onRemove }: ImageCardProps) => {
     <Card className="relative overflow-hidden animate-fade-in group">
       {isBest && (
         <div className="absolute top-2 left-2 z-10">
-          <div className="relative px-3 py-1 rounded-full bg-gradient-to-b from-[hsl(45,100%,60%)] to-[hsl(30,90%,45%)] shadow-[0_3px_0_0_hsl(25,80%,35%),0_4px_12px_-2px_hsl(30,90%,40%/0.5),inset_0_1px_2px_hsl(0,0%,100%/0.4)] text-[hsl(30,50%,10%)] text-xs font-bold tracking-wide flex items-center gap-1.5">
-            <span className="text-sm drop-shadow-sm">👑</span>
+          <div className="relative px-3 py-1 rounded-full bg-gradient-to-b from-[hsl(140,70%,50%)] to-[hsl(150,80%,35%)] shadow-[0_3px_0_0_hsl(155,80%,25%),0_4px_12px_-2px_hsl(150,70%,30%/0.5),inset_0_1px_2px_hsl(0,0%,100%/0.4)] text-[hsl(150,60%,12%)] text-xs font-bold tracking-wide flex items-center gap-1.5">
+            <ThumbsUp className="h-3.5 w-3.5 text-[hsl(150,60%,12%)]" />
             Best
           </div>
         </div>

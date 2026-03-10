@@ -108,16 +108,17 @@ const Index = () => {
   const captureGrid = async (): Promise<HTMLCanvasElement | null> => {
     if (!gridRef.current) return null;
     const el = gridRef.current;
+    const rect = el.getBoundingClientRect();
     const canvas = await html2canvas(el, {
       useCORS: true,
-      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue("--background")
-        ? window.getComputedStyle(document.body).backgroundColor
-        : "#ffffff",
+      backgroundColor: window.getComputedStyle(document.body).backgroundColor || "#ffffff",
       scale: 2,
-      width: el.scrollWidth,
-      height: el.scrollHeight,
-      windowWidth: el.scrollWidth,
-      windowHeight: el.scrollHeight,
+      width: rect.width,
+      height: rect.height,
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
     });
     return canvas;
   };
