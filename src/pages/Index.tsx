@@ -66,10 +66,13 @@ const Index = () => {
         img.src = trimmed;
       });
 
-      // Estimate size via fetch
+      // Fetch to get size and content-type
       let sizeKB = 0;
+      let format = "unknown";
       try {
         const res = await fetch(trimmed, { mode: "cors" });
+        const contentType = res.headers.get("content-type") || "";
+        format = getFormatFromContentType(contentType);
         const blob = await res.blob();
         sizeKB = Math.round(blob.size / 1024);
       } catch {
@@ -84,7 +87,7 @@ const Index = () => {
         height: img.naturalHeight,
         sizeKB,
         aspectRatio: `${img.naturalWidth / g}:${img.naturalHeight / g}`,
-        format: getFormat(trimmed),
+        format,
       };
 
       setImages((prev) => [...prev, data]);
