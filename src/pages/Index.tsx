@@ -3,7 +3,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { CornerDownRight, Download, Copy, Trash2, FileImage as ImageIcon } from "lucide-react";
+import {
+  CornerDownRight,
+  Download,
+  Copy,
+  Trash2,
+  FileImage as ImageIcon,
+  Loader2,
+  CircleCheckBig,
+} from "lucide-react";
 import ImageCard, { type ImageData } from "@/components/ImageCard";
 import * as htmlToImage from "html-to-image";
 
@@ -47,6 +55,12 @@ const Index = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "loading" | "success">(
+    "idle",
+  );
+  const [downloadState, setDownloadState] = useState<
+    "idle" | "loading" | "success"
+  >("idle");
   const [comparisonPadding, setComparisonPadding] = useState(24);
   const gridRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -288,27 +302,33 @@ const Index = () => {
 
   const copyComparison = async () => {
     try {
+      setCopyState("loading");
       const canvas = await captureGrid();
       if (!canvas) return;
       canvas.toBlob(async (blob) => {
         if (!blob) {
           toast.error("Copy failed");
+          setCopyState("idle");
           return;
         }
         await navigator.clipboard.write([
           new ClipboardItem({ "image/png": blob }),
         ]);
         toast.success("Comparison image copied to clipboard!");
+        setCopyState("success");
+        setTimeout(() => setCopyState("idle"), 200);
       }, "image/png");
     } catch {
       toast.error(
         "Copy failed — your browser may not support image clipboard.",
       );
+      setCopyState("idle");
     }
   };
 
   const downloadComparison = async () => {
     try {
+      setDownloadState("loading");
       const canvas = await captureGrid();
       if (!canvas) return;
       const link = document.createElement("a");
@@ -316,8 +336,11 @@ const Index = () => {
       link.href = canvas.toDataURL("image/png");
       link.click();
       toast.success("Downloaded!");
+      setDownloadState("success");
+      setTimeout(() => setDownloadState("idle"), 200);
     } catch {
       toast.error("Download failed — try copying instead.");
+      setDownloadState("idle");
     }
   };
 
@@ -380,11 +403,43 @@ const Index = () => {
 
         {images.length > 0 && (
           <div className="flex gap-2 mt-4 flex-wrap items-center">
-            <Button variant="outline" size="sm" onClick={copyComparison}>
-              <Copy className="h-4 w-4 mr-1" /> Copy
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyComparison}
+              disabled={copyState === "loading"}
+            >
+              {copyState === "loading" ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : copyState === "success" ? (
+                <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
+              ) : (
+                <Copy className="h-4 w-4 mr-1" />
+              )}
+              {copyState === "loading"
+                ? "Copying…"
+                : copyState === "success"
+                  ? "Copied!"
+                  : "Copy"}
             </Button>
-            <Button variant="outline" size="sm" onClick={downloadComparison}>
-              <Download className="h-4 w-4 mr-1" /> Download
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadComparison}
+              disabled={downloadState === "loading"}
+            >
+              {downloadState === "loading" ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : downloadState === "success" ? (
+                <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
+              ) : (
+                <Download className="h-4 w-4 mr-1" />
+              )}
+              {downloadState === "loading"
+                ? "Downloading…"
+                : downloadState === "success"
+                  ? "Downloaded!"
+                  : "Download"}
             </Button>
             <Button variant="destructive" size="sm" onClick={clearAll}>
               <Trash2 className="h-4 w-4 mr-1" /> Clear All
