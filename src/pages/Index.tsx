@@ -10,13 +10,20 @@ function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
 }
 
-function getFormat(url: string): string {
-  try {
-    const path = new URL(url).pathname.toLowerCase();
-    const ext = path.split(".").pop();
-    if (ext && ["png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "bmp", "ico"].includes(ext)) return ext === "jpg" ? "jpeg" : ext;
-  } catch {}
-  return "unknown";
+function getFormatFromContentType(contentType: string): string {
+  const map: Record<string, string> = {
+    "image/png": "png",
+    "image/jpeg": "jpeg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/svg+xml": "svg",
+    "image/avif": "avif",
+    "image/bmp": "bmp",
+    "image/x-icon": "ico",
+    "image/vnd.microsoft.icon": "ico",
+  };
+  const base = contentType.split(";")[0].trim().toLowerCase();
+  return map[base] || "unknown";
 }
 
 function scoreBest(images: ImageData[]): string | null {
