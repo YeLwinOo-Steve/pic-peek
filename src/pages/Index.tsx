@@ -96,14 +96,21 @@ const Index = () => {
       setUrl("");
       toast.success("Image added!");
     } catch {
-      toast.error("Could not load image. Check the URL.");
+      toast.error("Could not load image. Check the URL.", {
+        description:
+          "The image URL may be invalid or the image is not accessible.",
+      });
     } finally {
       setLoading(false);
     }
   }, [url, images.length]);
 
-  const removeImage = (id: string) => setImages((prev) => prev.filter((i) => i.id !== id));
-  const clearAll = () => { setImages([]); toast("All cleared"); };
+  const removeImage = (id: string) =>
+    setImages((prev) => prev.filter((i) => i.id !== id));
+  const clearAll = () => {
+    setImages([]);
+    toast("All cleared");
+  };
 
   const bestId = scoreBest(images);
 
@@ -171,7 +178,7 @@ const Index = () => {
     // Watermark in bottom-right corner
     const padding = Math.round(outCanvas.width * 0.02); // 2% padding
     const fontSize = Math.max(12, Math.round(outCanvas.width * 0.018));
-    ctx.font = `${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif`;
+    ctx.font = `${fontSize}px "Shantell Sans", cursive, sans-serif`;
     ctx.textBaseline = "bottom";
 
     const watermarkText = "image-comparer";
@@ -188,8 +195,8 @@ const Index = () => {
     const boxW = textWidth + boxPaddingX * 2;
     const boxH = fontSize + boxPaddingY;
 
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
-    ctx.roundRect?.(boxX, boxY, boxW, boxH, Math.min(8, boxH / 2));
+    ctx.fillStyle = "rgb(228, 85, 42)";
+    ctx.roundRect?.(boxX, boxY, boxW, boxH, Math.min(16, boxH));
     if (!ctx.roundRect) {
       ctx.fillRect(boxX, boxY, boxW, boxH);
     } else {
@@ -208,12 +215,19 @@ const Index = () => {
       const canvas = await captureGrid();
       if (!canvas) return;
       canvas.toBlob(async (blob) => {
-        if (!blob) { toast.error("Copy failed"); return; }
-        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        if (!blob) {
+          toast.error("Copy failed");
+          return;
+        }
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": blob }),
+        ]);
         toast.success("Comparison image copied to clipboard!");
       }, "image/png");
     } catch {
-      toast.error("Copy failed — your browser may not support image clipboard.");
+      toast.error(
+        "Copy failed — your browser may not support image clipboard.",
+      );
     }
   };
 
@@ -253,7 +267,10 @@ const Index = () => {
       {/* Input */}
       <div className="container max-w-6xl py-6">
         <form
-          onSubmit={(e) => { e.preventDefault(); addImage(); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            addImage();
+          }}
           className="flex gap-2"
         >
           <Input
@@ -277,7 +294,7 @@ const Index = () => {
             <Button variant="outline" size="sm" onClick={downloadComparison}>
               <Download className="h-4 w-4 mr-1" /> Download
             </Button>
-            <Button variant="outline" size="sm" onClick={clearAll}>
+            <Button variant="destructive" size="sm" onClick={clearAll}>
               <Trash2 className="h-4 w-4 mr-1" /> Clear All
             </Button>
             <div className="ml-auto flex items-center gap-3 min-w-[180px]">
@@ -296,8 +313,8 @@ const Index = () => {
                   }}
                 />
               </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                {images.length}/9
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                {images.length}/9 images
               </span>
             </div>
           </div>
@@ -311,8 +328,12 @@ const Index = () => {
             <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
               <ImageIcon className="h-10 w-10 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground text-lg font-medium">No images yet</p>
-            <p className="text-muted-foreground text-sm">Paste an image URL above to get started</p>
+            <p className="text-muted-foreground text-lg font-medium">
+              No images yet
+            </p>
+            <p className="text-muted-foreground text-sm">
+              Paste an image URL above to get started
+            </p>
           </div>
         ) : (
           <div
@@ -322,7 +343,12 @@ const Index = () => {
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {images.map((img) => (
-                <ImageCard key={img.id} image={img} isBest={img.id === bestId} onRemove={removeImage} />
+                <ImageCard
+                  key={img.id}
+                  image={img}
+                  isBest={img.id === bestId}
+                  onRemove={removeImage}
+                />
               ))}
             </div>
           </div>

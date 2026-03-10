@@ -21,10 +21,10 @@ interface ImageCardProps {
 
 const ImageCard = ({ image, isBest, onRemove }: ImageCardProps) => {
   return (
-    <Card className="relative overflow-hidden animate-fade-in group">
+    <Card className="relative overflow-hidden animate-fade-in group rounded-3xl shadow-none border-2 border-border/40 bg-gradient-to-b from-card to-card/95 ring-1 ring-inset ring-white/10">
       {isBest && (
         <div className="absolute top-2 left-2 z-10">
-          <div className="relative px-3 py-1 rounded-full bg-gradient-to-b from-[hsl(140,70%,50%)] to-[hsl(150,80%,35%)] shadow-[0_3px_0_0_hsl(155,80%,25%),0_4px_12px_-2px_hsl(150,70%,30%/0.5),inset_0_1px_2px_hsl(0,0%,100%/0.4)] text-[hsl(150,60%,12%)] text-xs font-bold tracking-wide flex items-center gap-1.5">
+          <div className="relative px-3 py-1.5 rounded-full bg-gradient-to-b from-[hsl(140,70%,52%)] to-[hsl(150,75%,38%)] border border-[hsl(155,60%,30%)]/50 text-[hsl(150,60%,12%)] text-xs font-bold tracking-wide flex items-center gap-1.5 ring-1 ring-inset ring-white/30">
             <ThumbsUp className="h-3.5 w-3.5 text-[hsl(150,60%,12%)]" />
             Best
           </div>
@@ -33,17 +33,17 @@ const ImageCard = ({ image, isBest, onRemove }: ImageCardProps) => {
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-secondary/80 text-secondary-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-background/90 border border-border/60 text-foreground opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
         onClick={() => onRemove(image.id)}
       >
         <X className="h-4 w-4" />
       </Button>
       <div
-        className="aspect-video bg-muted flex items-center justify-center overflow-hidden bg-center bg-no-repeat bg-contain"
+        className="aspect-video flex items-center justify-center overflow-hidden bg-center bg-no-repeat bg-contain border-b border-border/50 bg-muted"
         style={{ backgroundImage: `url(${image.url})` }}
         aria-label="Comparison image"
       />
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 space-y-3">
         <div className="grid grid-cols-2 gap-2 text-sm">
           <Property label="Width" value={`${image.width}px`} />
           <Property label="Height" value={`${image.height}px`} />
@@ -52,16 +52,16 @@ const ImageCard = ({ image, isBest, onRemove }: ImageCardProps) => {
           <Property label="Format" value={image.format.toUpperCase()} />
           <Property label="Pixels" value={`${((image.width * image.height) / 1e6).toFixed(2)} MP`} />
         </div>
-        <p className="text-[11px] text-muted-foreground truncate pt-1 border-t border-border">{image.url}</p>
+        <p className="text-[11px] text-muted-foreground truncate pt-2 border-t border-border/60">{image.url}</p>
       </CardContent>
     </Card>
   );
 };
 
 const Property = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex justify-between items-center bg-muted/60 rounded-md px-2 py-2">
+  <div className="flex justify-between items-center gap-2 rounded-lg border border-border/50 bg-gradient-to-b from-muted/70 to-muted/50 px-2.5 py-2 ring-1 ring-inset ring-white/5">
     <span className="text-muted-foreground text-xs">{label}</span>
-    <span className="font-semibold text-foreground text-xs">{value}</span>
+    <span className="font-semibold text-foreground text-xs tabular-nums">{value}</span>
   </div>
 );
 
