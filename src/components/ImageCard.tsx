@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 
-import { X } from "lucide-react";
+import { X, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface ImageData {
