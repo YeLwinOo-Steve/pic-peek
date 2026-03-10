@@ -181,7 +181,7 @@ const Index = () => {
     ctx.font = `${fontSize}px "Shantell Sans", cursive, sans-serif`;
     ctx.textBaseline = "bottom";
 
-    const watermarkText = "image-comparer";
+    const watermarkText = "PicPeek";
     const textMetrics = ctx.measureText(watermarkText);
     const textWidth = textMetrics.width;
     const x = outCanvas.width - textWidth - padding;
@@ -255,7 +255,7 @@ const Index = () => {
               <ImageIcon className="h-5 w-5 text-primary-foreground" />
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-              Image Comparer
+              PicPeek
             </h1>
           </div>
           <p className="text-muted-foreground text-sm ml-[52px]">
@@ -338,7 +338,7 @@ const Index = () => {
         ) : (
           <div
             ref={gridRef}
-            className="rounded-3xl border-2 border-dashed border-muted-foreground/50 bg-card/40"
+            className="rounded-3xl border border-primary/30 bg-card/40"
             style={{ padding: `${comparisonPadding}px` }}
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
