@@ -23,9 +23,12 @@ const ImageCard = ({ image, isBest, onRemove }: ImageCardProps) => {
   return (
     <Card className="relative overflow-hidden animate-fade-in group">
       {isBest && (
-        <Badge className="absolute top-2 left-2 z-10 bg-best text-best-foreground border-none shadow-md">
-          ⭐ Best
-        </Badge>
+        <div className="absolute top-2 left-2 z-10">
+          <div className="relative px-3 py-1 rounded-full bg-gradient-to-b from-[hsl(45,100%,60%)] to-[hsl(30,90%,45%)] shadow-[0_3px_0_0_hsl(25,80%,35%),0_4px_12px_-2px_hsl(30,90%,40%/0.5),inset_0_1px_2px_hsl(0,0%,100%/0.4)] text-[hsl(30,50%,10%)] text-xs font-bold tracking-wide flex items-center gap-1.5">
+            <span className="text-sm drop-shadow-sm">👑</span>
+            Best
+          </div>
+        </div>
       )}
       <Button
         variant="ghost"

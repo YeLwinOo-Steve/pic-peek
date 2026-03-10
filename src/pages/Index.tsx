@@ -105,19 +105,44 @@ const Index = () => {
 
   const bestId = scoreBest(images);
 
+  const captureGrid = async (): Promise<HTMLCanvasElement | null> => {
+    if (!gridRef.current) return null;
+    const el = gridRef.current;
+    const canvas = await html2canvas(el, {
+      useCORS: true,
+      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue("--background")
+        ? window.getComputedStyle(document.body).backgroundColor
+        : "#ffffff",
+      scale: 2,
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+      windowWidth: el.scrollWidth,
+      windowHeight: el.scrollHeight,
+    });
+    return canvas;
+  };
+
   const copyComparison = async () => {
-    const text = images.map((img, i) => `Image ${i + 1}: ${img.width}x${img.height}, ${img.sizeKB}KB, ${img.format} — ${img.url}`).join("\n");
-    await navigator.clipboard.writeText(text);
-    toast.success("Comparison copied to clipboard!");
+    try {
+      const canvas = await captureGrid();
+      if (!canvas) return;
+      canvas.toBlob(async (blob) => {
+        if (!blob) { toast.error("Copy failed"); return; }
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        toast.success("Comparison image copied to clipboard!");
+      }, "image/png");
+    } catch {
+      toast.error("Copy failed — your browser may not support image clipboard.");
+    }
   };
 
   const downloadComparison = async () => {
-    if (!gridRef.current) return;
     try {
-      const canvas = await html2canvas(gridRef.current, { useCORS: true, backgroundColor: null });
+      const canvas = await captureGrid();
+      if (!canvas) return;
       const link = document.createElement("a");
       link.download = "image-comparison.png";
-      link.href = canvas.toDataURL();
+      link.href = canvas.toDataURL("image/png");
       link.click();
       toast.success("Downloaded!");
     } catch {
