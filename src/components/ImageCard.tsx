@@ -38,11 +38,13 @@ const ImageCard = ({ image, isBest, onRemove }: ImageCardProps) => {
       >
         <X className="h-4 w-4" />
       </Button>
-      <div
-        className="aspect-video flex items-center justify-center overflow-hidden bg-center bg-no-repeat bg-contain border-b border-border/50 bg-muted"
-        style={{ backgroundImage: `url(${image.url})` }}
-        aria-label="Comparison image"
-      />
+      <div className="aspect-video flex items-center justify-center overflow-hidden border-b border-border/50 bg-muted">
+        <img
+          src={image.url}
+          alt="Comparison image"
+          className="max-h-full max-w-full object-contain"
+        />
+      </div>
       <CardContent className="p-4 space-y-3">
         <div className="grid grid-cols-2 gap-2 text-sm">
           <Property label="Width" value={`${image.width}px`} />

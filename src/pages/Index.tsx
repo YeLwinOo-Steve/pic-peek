@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, type ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Plus, Download, Copy, Trash2, Image as ImageIcon } from "lucide-react";
+import { CornerDownRight, Download, Copy, Trash2, FileImage as ImageIcon } from "lucide-react";
 import ImageCard, { type ImageData } from "@/components/ImageCard";
 import * as htmlToImage from "html-to-image";
 
@@ -49,6 +49,7 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const [comparisonPadding, setComparisonPadding] = useState(24);
   const gridRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const addImage = useCallback(async () => {
     const trimmed = url.trim();
@@ -105,8 +106,83 @@ const Index = () => {
     }
   }, [url, images.length]);
 
+  const handleFileUpload = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const fileList = event.target.files;
+      if (!fileList || fileList.length === 0) return;
+
+      if (images.length >= 9) {
+        toast.error("Maximum 9 images allowed");
+        event.target.value = "";
+        return;
+      }
+
+      const remainingSlots = 9 - images.length;
+      const files = Array.from(fileList).slice(0, remainingSlots);
+
+      setLoading(true);
+      try {
+        const newImages: ImageData[] = await Promise.all(
+          files.map(
+            (file) =>
+              new Promise<ImageData>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const result = reader.result;
+                  if (typeof result !== "string") {
+                    reject(new Error("Failed to read image file"));
+                    return;
+                  }
+                  const img = new window.Image();
+                  img.onload = () => {
+                    const g = gcd(img.naturalWidth, img.naturalHeight);
+                    const sizeKB = Math.round(file.size / 1024);
+                    const format = getFormatFromContentType(file.type || "");
+                    resolve({
+                      id: crypto.randomUUID(),
+                      url: result,
+                      width: img.naturalWidth,
+                      height: img.naturalHeight,
+                      sizeKB,
+                      aspectRatio: `${img.naturalWidth / g}:${img.naturalHeight / g}`,
+                      format,
+                    });
+                  };
+                  img.onerror = () => {
+                    reject(new Error("Failed to load image file"));
+                  };
+                  img.src = result;
+                };
+                reader.onerror = () => {
+                  reject(new Error("Failed to read image file"));
+                };
+                reader.readAsDataURL(file);
+              }),
+          ),
+        );
+
+        setImages((prev) => [...prev, ...newImages]);
+
+        if (fileList.length > remainingSlots) {
+          toast("Some files were not added", {
+            description: "You can add up to 9 images total.",
+          });
+        } else {
+          toast.success("Image(s) added!");
+        }
+      } catch {
+        toast.error("Could not load one or more image files.");
+      } finally {
+        setLoading(false);
+        event.target.value = "";
+      }
+    },
+    [images.length],
+  );
+
   const removeImage = (id: string) =>
     setImages((prev) => prev.filter((i) => i.id !== id));
+
   const clearAll = () => {
     setImages([]);
     toast("All cleared");
@@ -259,7 +335,7 @@ const Index = () => {
             </h1>
           </div>
           <p className="text-muted-foreground text-sm ml-[52px]">
-            Compare up to 9 images side by side — paste a URL and hit add.
+            Compare up to 9 images side by side — paste a URL or upload files.
           </p>
         </div>
       </header>
@@ -273,16 +349,32 @@ const Index = () => {
           }}
           className="flex gap-2"
         >
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ImageIcon className="h-4 w-4 mr-1" /> Upload Image
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFileUpload}
+          />
           <Input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Paste image URL here…"
-            className="flex-1"
+            className="flex-1 rounded-full py-2"
             disabled={loading}
           />
+
           <Button type="submit" disabled={loading || !url.trim()}>
-            <Plus className="h-4 w-4 mr-1" />
-            {loading ? "Loading…" : "Add"}
+            <CornerDownRight className="h-4 w-4 mr-1" />
+            {loading ? "Loading…" : "Compare"}
           </Button>
         </form>
 
