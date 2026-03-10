@@ -10,13 +10,20 @@ function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
 }
 
-function getFormat(url: string): string {
-  try {
-    const path = new URL(url).pathname.toLowerCase();
-    const ext = path.split(".").pop();
-    if (ext && ["png", "jpg", "jpeg", "gif", "webp", "svg", "avif", "bmp", "ico"].includes(ext)) return ext === "jpg" ? "jpeg" : ext;
-  } catch {}
-  return "unknown";
+function getFormatFromContentType(contentType: string): string {
+  const map: Record<string, string> = {
+    "image/png": "png",
+    "image/jpeg": "jpeg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/svg+xml": "svg",
+    "image/avif": "avif",
+    "image/bmp": "bmp",
+    "image/x-icon": "ico",
+    "image/vnd.microsoft.icon": "ico",
+  };
+  const base = contentType.split(";")[0].trim().toLowerCase();
+  return map[base] || "unknown";
 }
 
 function scoreBest(images: ImageData[]): string | null {
@@ -59,10 +66,13 @@ const Index = () => {
         img.src = trimmed;
       });
 
-      // Estimate size via fetch
+      // Fetch to get size and content-type
       let sizeKB = 0;
+      let format = "unknown";
       try {
         const res = await fetch(trimmed, { mode: "cors" });
+        const contentType = res.headers.get("content-type") || "";
+        format = getFormatFromContentType(contentType);
         const blob = await res.blob();
         sizeKB = Math.round(blob.size / 1024);
       } catch {
@@ -77,7 +87,7 @@ const Index = () => {
         height: img.naturalHeight,
         sizeKB,
         aspectRatio: `${img.naturalWidth / g}:${img.naturalHeight / g}`,
-        format: getFormat(trimmed),
+        format,
       };
 
       setImages((prev) => [...prev, data]);
@@ -95,19 +105,44 @@ const Index = () => {
 
   const bestId = scoreBest(images);
 
+  const captureGrid = async (): Promise<HTMLCanvasElement | null> => {
+    if (!gridRef.current) return null;
+    const el = gridRef.current;
+    const canvas = await html2canvas(el, {
+      useCORS: true,
+      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue("--background")
+        ? window.getComputedStyle(document.body).backgroundColor
+        : "#ffffff",
+      scale: 2,
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+      windowWidth: el.scrollWidth,
+      windowHeight: el.scrollHeight,
+    });
+    return canvas;
+  };
+
   const copyComparison = async () => {
-    const text = images.map((img, i) => `Image ${i + 1}: ${img.width}x${img.height}, ${img.sizeKB}KB, ${img.format} — ${img.url}`).join("\n");
-    await navigator.clipboard.writeText(text);
-    toast.success("Comparison copied to clipboard!");
+    try {
+      const canvas = await captureGrid();
+      if (!canvas) return;
+      canvas.toBlob(async (blob) => {
+        if (!blob) { toast.error("Copy failed"); return; }
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        toast.success("Comparison image copied to clipboard!");
+      }, "image/png");
+    } catch {
+      toast.error("Copy failed — your browser may not support image clipboard.");
+    }
   };
 
   const downloadComparison = async () => {
-    if (!gridRef.current) return;
     try {
-      const canvas = await html2canvas(gridRef.current, { useCORS: true, backgroundColor: null });
+      const canvas = await captureGrid();
+      if (!canvas) return;
       const link = document.createElement("a");
       link.download = "image-comparison.png";
-      link.href = canvas.toDataURL();
+      link.href = canvas.toDataURL("image/png");
       link.click();
       toast.success("Downloaded!");
     } catch {
