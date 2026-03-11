@@ -36,7 +36,7 @@ function fmtMaybeNumber(n: unknown, digits = 0): string | null {
   return n.toFixed(digits);
 }
 
-function parsePngMeta(buf: ArrayBuffer): Pick<ExtractedMeta, "bitDepth" | "dpi"> {
+function parsePngMeta(buf: ArrayBuffer): Pick<ExtractedMeta, "bitDepth" | "dpi" | "colorSpace"> {
   // PNG signature (8 bytes) then chunks
   const u8 = new Uint8Array(buf);
   const sig = [137, 80, 78, 71, 13, 10, 26, 10];
@@ -48,6 +48,7 @@ function parsePngMeta(buf: ArrayBuffer): Pick<ExtractedMeta, "bitDepth" | "dpi">
   let off = 8;
   let bitDepth: string | undefined;
   let dpi: string | undefined;
+  let colorSpace: string | undefined;
 
   while (off + 8 <= view.byteLength) {
     const length = view.getUint32(off);
@@ -78,11 +79,16 @@ function parsePngMeta(buf: ArrayBuffer): Pick<ExtractedMeta, "bitDepth" | "dpi">
       }
     }
 
+    // PNG sRGB chunk (1 byte: rendering intent) = sRGB color space
+    if (type === "sRGB" && length >= 1) {
+      colorSpace = "sRGB";
+    }
+
     off = dataOff + length + 4; // +CRC
     if (type === "IEND") break;
   }
 
-  return { bitDepth, dpi };
+  return { bitDepth, dpi, colorSpace };
 }
 
 async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<ExtractedMeta> {
@@ -104,7 +110,7 @@ async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<Ex
     );
 
     if (parsed) {
-      const bits = parsed.BitsPerSample ?? parsed.BitsPerPixel;
+      const bits = parsed.BitsPerSample ?? parsed.BitsPerPixel ?? parsed.BitsPerChannel;
       if (Array.isArray(bits) && bits.length > 0) {
         meta.bitDepth = `${bits.join("/")}-bit`;
       } else if (typeof bits === "number") {
@@ -113,7 +119,7 @@ async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<Ex
 
       const xRes = parsed.XResolution ?? parsed.xResolution;
       const yRes = parsed.YResolution ?? parsed.yResolution;
-      const unit = parsed.ResolutionUnit;
+      const unit = parsed.ResolutionUnit ?? 2;
       const x = fmtMaybeNumber(xRes, 0);
       const y = fmtMaybeNumber(yRes, 0);
       if (x && y) {
@@ -122,21 +128,23 @@ async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<Ex
         meta.dpi = x === y ? `${x} ${unitLabel}` : `${x}×${y} ${unitLabel}`;
       }
 
-      const cs = parsed.ColorSpace;
+      const cs = parsed.ColorSpace ?? parsed.PhotometricInterpretation;
       if (cs === 1) meta.colorSpace = "sRGB";
       else if (cs === 65535) meta.colorSpace = "Uncalibrated";
       else if (typeof cs === "number") meta.colorSpace = `ColorSpace ${cs}`;
 
-      const fl = parsed.FocalLength;
+      const fl = parsed.FocalLength ?? parsed.FocalLengthIn35mmFormat;
       if (typeof fl === "number" && Number.isFinite(fl)) {
         meta.focalLength = `${fl.toFixed(1)} mm`;
       }
 
       const dt =
-        parsed.DateTimeOriginal ||
-        parsed.CreateDate ||
-        parsed.ModifyDate ||
-        parsed.DateTime;
+        parsed.DateTimeOriginal ??
+        parsed.CreateDate ??
+        parsed.ModifyDate ??
+        parsed.DateTime ??
+        parsed.FileCreateDate ??
+        parsed.FileModifyDate;
       if (dt instanceof Date && !Number.isNaN(dt.getTime())) {
         meta.timestamp = dt.toLocaleString();
       } else if (typeof dt === "string" && dt.trim() !== "") {
@@ -160,6 +168,17 @@ async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<Ex
     }
   } catch {
     // ignore EXIF failures; we still may have PNG info
+  }
+
+  // Format-based fallbacks when metadata isn't embedded (common for web/screenshots)
+  const format = getFormatFromContentType(contentTypeHint ?? "");
+  if (!meta.bitDepth) {
+    if (format === "jpeg" || format === "webp" || format === "gif") {
+      meta.bitDepth = "8-bit (typical)";
+    }
+  }
+  if (!meta.colorSpace && (format === "jpeg" || format === "webp" || format === "png")) {
+    meta.colorSpace = "sRGB (assumed)";
   }
 
   return meta;
