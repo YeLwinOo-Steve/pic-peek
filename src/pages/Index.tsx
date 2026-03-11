@@ -13,6 +13,7 @@ import {
   Loader2,
   CircleCheckBig,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import ImageCard, { type ImageData } from "@/components/ImageCard";
 import * as htmlToImage from "html-to-image";
 import * as exifr from "exifr";
@@ -766,16 +767,31 @@ const Index = () => {
             style={{ padding: `${comparisonPadding}px` }}
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {images.map((img) => (
-                <ImageCard
-                  key={img.id}
-                  image={img}
-                  allImages={images}
-                  showAdvanced={showAdvanced}
-                  isBest={img.id === bestId}
-                  onRemove={removeImage}
-                />
-              ))}
+              <AnimatePresence mode="popLayout">
+                {images.map((img) => (
+                  <motion.div
+                    key={img.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={{
+                      layout: { type: "spring", stiffness: 350, damping: 30 },
+                      opacity: { duration: 0.2 },
+                      scale: { duration: 0.2 },
+                    }}
+                    className="min-w-0"
+                  >
+                    <ImageCard
+                      image={img}
+                      allImages={images}
+                      showAdvanced={showAdvanced}
+                      isBest={img.id === bestId}
+                      onRemove={removeImage}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </div>
         )}
