@@ -193,8 +193,8 @@ const ImageCard = ({ image, allImages, showAdvanced, isBest, onRemove }: ImageCa
     <Card className="relative overflow-hidden animate-fade-in group rounded-3xl shadow-none border-2 border-border/40 bg-gradient-to-b from-card to-card/95 ring-1 ring-inset ring-white/10">
       {isBest && (
         <div className="absolute top-2 left-2 z-10">
-          <div className="relative px-3 py-1.5 rounded-full bg-gradient-to-b from-[hsl(140,70%,52%)] to-[hsl(150,75%,38%)] border border-[hsl(155,60%,30%)]/50 text-[hsl(150,60%,12%)] text-xs font-bold tracking-wide flex items-center gap-1.5 ring-1 ring-inset ring-white/30">
-            <ThumbsUp className="h-3.5 w-3.5 text-[hsl(150,60%,12%)]" />
+          <div className="relative px-3 py-1.5 rounded-full bg-gradient-to-b from-[hsl(140,70%,52%)] to-[hsl(150,75%,38%)] border border-[hsl(155,60%,30%)]/50 text-black text-xs font-bold tracking-wide flex items-center gap-1.5 ring-1 ring-inset ring-white/30">
+            <ThumbsUp className="h-3.5 w-3.5 text-black" />
             Best
           </div>
         </div>
