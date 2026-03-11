@@ -602,9 +602,9 @@ const Index = () => {
         </form>
 
         {images.length > 0 && (
-          <div className="mt-4 flex flex-col gap-3">
-            {/* Mobile: row 1 (actions + count). Desktop: actions inline */}
-            <div className="flex items-center justify-between gap-2 sm:justify-start sm:flex-wrap">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-nowrap sm:gap-4">
+            {/* Mobile: row 1 (actions + count). Desktop: same row as toggles */}
+            <div className="flex items-center justify-between gap-2 sm:justify-start sm:flex-nowrap">
               <div className="flex items-center gap-2">
               {/* Copy */}
               <Button
@@ -702,13 +702,13 @@ const Index = () => {
               </Button>
               </div>
 
-              <span className="text-sm text-muted-foreground whitespace-nowrap sm:ml-auto">
+              <span className="text-sm text-muted-foreground whitespace-nowrap sm:hidden">
                 {images.length}/9 images
               </span>
             </div>
 
-            {/* Mobile: row 2 (toggles). Desktop: align right */}
-            <div className="flex items-center gap-3 sm:ml-auto sm:min-w-[240px]">
+            {/* Mobile: row 2 (toggles). Desktop: same row, right side */}
+            <div className="flex items-center gap-3 sm:ml-auto sm:flex-nowrap sm:min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
                   Advanced
@@ -737,6 +737,9 @@ const Index = () => {
                   }}
                 />
               </div>
+              <span className="text-sm text-muted-foreground whitespace-nowrap hidden sm:inline">
+                {images.length}/9 images
+              </span>
             </div>
           </div>
         )}
