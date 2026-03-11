@@ -14,6 +14,14 @@ export interface ImageData {
   format: string;
   /** Optional display name (e.g. file name or URL basename). */
   fileName?: string;
+  bitDepth?: string;
+  dpi?: string;
+  colorSpace?: string;
+  hasAlpha?: boolean;
+  histogram?: string;
+  focalLength?: string;
+  timestamp?: string;
+  exifOrientation?: string;
 }
 
 interface ImageCardProps {
@@ -146,10 +154,12 @@ async function analyzeImagePixels(src: string): Promise<
 
 const ImageCard = ({ image, allImages, showAdvanced, isBest, onRemove }: ImageCardProps) => {
   const best = getBestFlags(image, allImages);
-  const orientation = useMemo(
-    () => computeOrientation(image.width, image.height),
-    [image.width, image.height],
-  );
+  const orientation = useMemo(() => {
+    if (image.exifOrientation && image.exifOrientation.trim() !== "") {
+      return image.exifOrientation;
+    }
+    return computeOrientation(image.width, image.height);
+  }, [image.width, image.height, image.exifOrientation]);
   const [advanced, setAdvanced] = useState<AdvancedInfo>({ status: "idle" });
 
   useEffect(() => {
@@ -239,44 +249,61 @@ const ImageCard = ({ image, allImages, showAdvanced, isBest, onRemove }: ImageCa
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <Property label="Bit Depth" value={"N/A"} />
-                <Property label="DPI/PPI" value={"N/A"} />
-                <Property label="Color Space" value={"N/A"} />
+              <div className="col-span-2 flex flex-col gap-2 text-sm">
+                <Property
+                  label="Bit Depth"
+                  value={image.bitDepth || "Unknown"}
+                  tone={image.bitDepth ? "normal" : "muted"}
+                />
+                <Property
+                  label="DPI/PPI"
+                  value={image.dpi || "Unknown"}
+                  tone={image.dpi ? "normal" : "muted"}
+                />
+                <Property
+                  label="Color Space"
+                  value={image.colorSpace || "Unknown"}
+                  tone={image.colorSpace ? "normal" : "muted"}
+                />
                 <Property
                   label="Orientation"
                   value={orientation}
                 />
                 <Property
                   label="Timestamp"
-                  value={"N/A"}
+                  value={image.timestamp || "Unknown"}
+                  tone={image.timestamp ? "normal" : "muted"}
                 />
                 <Property
                   label="Focal Length"
-                  value={"N/A"}
+                  value={image.focalLength || "Unknown"}
+                  tone={image.focalLength ? "normal" : "muted"}
                 />
                 <Property
                   label="Alpha"
                   value={
-                    advanced.status === "ready"
-                      ? advanced.hasAlpha
+                    typeof image.hasAlpha === "boolean"
+                      ? image.hasAlpha
                         ? "Yes"
                         : "No"
-                      : advanced.status === "unavailable"
-                        ? "Unavailable"
-                        : showAdvanced
-                          ? "—"
+                      : advanced.status === "ready"
+                        ? advanced.hasAlpha
+                          ? "Yes"
+                          : "No"
+                        : advanced.status === "unavailable"
+                          ? "Unavailable"
                           : "—"
                   }
                 />
                 <Property
                   label="Histogram"
                   value={
-                    advanced.status === "ready"
+                    image.histogram ||
+                    (advanced.status === "ready"
                       ? `μ ${advanced.lumaMean.toFixed(0)}, σ ${advanced.lumaStd.toFixed(0)}`
                       : advanced.status === "unavailable"
                         ? "Unavailable"
-                        : "—"
+                        : "—")
                   }
                 />
                 <div className="col-span-2 flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/40 px-2.5 py-2">
@@ -286,7 +313,7 @@ const ImageCard = ({ image, allImages, showAdvanced, isBest, onRemove }: ImageCa
                       advanced.dominantColors.map((c) => (
                         <div key={c} className="flex items-center gap-1">
                           <span
-                            className="h-3 w-3 rounded-sm border border-border/60"
+                            className="h-6 w-6 rounded-sm border border-primary/40"
                             style={{ backgroundColor: c }}
                             title={c}
                           />
@@ -317,11 +344,13 @@ const Property = ({
   value,
   className = "",
   isBest = false,
+  tone = "normal",
 }: {
   label: string;
   value: string;
   className?: string;
   isBest?: boolean;
+  tone?: "normal" | "muted";
 }) => (
   <div
     className={`flex justify-between items-center gap-2 rounded-lg border px-2.5 py-2 ring-1 ring-inset ${
@@ -331,7 +360,13 @@ const Property = ({
     } ${className}`.trim()}
   >
     <span className="text-muted-foreground text-xs">{label}</span>
-    <span className="font-semibold text-foreground text-xs tabular-nums truncate min-w-0">{value}</span>
+    <span
+      className={`font-semibold text-xs tabular-nums truncate min-w-0 ${
+        tone === "muted" ? "text-muted-foreground/50" : "text-foreground"
+      }`.trim()}
+    >
+      {value}
+    </span>
   </div>
 );
 

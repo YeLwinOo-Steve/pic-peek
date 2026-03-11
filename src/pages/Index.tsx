@@ -15,6 +15,153 @@ import {
 } from "lucide-react";
 import ImageCard, { type ImageData } from "@/components/ImageCard";
 import * as htmlToImage from "html-to-image";
+import * as exifr from "exifr";
+
+type ExtractedMeta = Pick<
+  ImageData,
+  | "bitDepth"
+  | "dpi"
+  | "colorSpace"
+  | "focalLength"
+  | "timestamp"
+  | "exifOrientation"
+  | "hasAlpha"
+  | "histogram"
+>;
+
+function fmtMaybeNumber(n: unknown, digits = 0): string | null {
+  if (typeof n !== "number" || !Number.isFinite(n)) return null;
+  return n.toFixed(digits);
+}
+
+function parsePngMeta(buf: ArrayBuffer): Pick<ExtractedMeta, "bitDepth" | "dpi"> {
+  // PNG signature (8 bytes) then chunks
+  const u8 = new Uint8Array(buf);
+  const sig = [137, 80, 78, 71, 13, 10, 26, 10];
+  for (let i = 0; i < sig.length; i++) {
+    if (u8[i] !== sig[i]) return {};
+  }
+
+  const view = new DataView(buf);
+  let off = 8;
+  let bitDepth: string | undefined;
+  let dpi: string | undefined;
+
+  while (off + 8 <= view.byteLength) {
+    const length = view.getUint32(off);
+    const type =
+      String.fromCharCode(u8[off + 4] || 0) +
+      String.fromCharCode(u8[off + 5] || 0) +
+      String.fromCharCode(u8[off + 6] || 0) +
+      String.fromCharCode(u8[off + 7] || 0);
+    const dataOff = off + 8;
+
+    if (type === "IHDR" && dataOff + 13 <= view.byteLength) {
+      const bd = u8[dataOff + 8];
+      if (typeof bd === "number") bitDepth = `${bd}-bit`;
+    }
+
+    if (type === "pHYs" && dataOff + 9 <= view.byteLength) {
+      const ppux = view.getUint32(dataOff);
+      const ppuy = view.getUint32(dataOff + 4);
+      const unit = u8[dataOff + 8]; // 1 = meter
+      if (unit === 1) {
+        const xDpi = ppux * 0.0254;
+        const yDpi = ppuy * 0.0254;
+        if (Number.isFinite(xDpi) && Number.isFinite(yDpi)) {
+          const x = Math.round(xDpi);
+          const y = Math.round(yDpi);
+          dpi = x === y ? `${x} DPI` : `${x}×${y} DPI`;
+        }
+      }
+    }
+
+    off = dataOff + length + 4; // +CRC
+    if (type === "IEND") break;
+  }
+
+  return { bitDepth, dpi };
+}
+
+async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<ExtractedMeta> {
+  const meta: ExtractedMeta = {};
+  const buf = await blob.arrayBuffer();
+
+  // PNG-specific quick parse (bit depth + pHYs DPI)
+  const ct = (contentTypeHint || "").toLowerCase();
+  if (ct.includes("png")) {
+    Object.assign(meta, parsePngMeta(buf));
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed: any = await exifr.parse(
+      buf,
+      // exifr's option types are fairly strict; this shape is supported at runtime.
+      { tiff: true, ifd0: true, exif: true } as any,
+    );
+
+    if (parsed) {
+      const bits = parsed.BitsPerSample ?? parsed.BitsPerPixel;
+      if (Array.isArray(bits) && bits.length > 0) {
+        meta.bitDepth = `${bits.join("/")}-bit`;
+      } else if (typeof bits === "number") {
+        meta.bitDepth = `${bits}-bit`;
+      }
+
+      const xRes = parsed.XResolution ?? parsed.xResolution;
+      const yRes = parsed.YResolution ?? parsed.yResolution;
+      const unit = parsed.ResolutionUnit;
+      const x = fmtMaybeNumber(xRes, 0);
+      const y = fmtMaybeNumber(yRes, 0);
+      if (x && y) {
+        const unitLabel =
+          unit === 2 ? "DPI" : unit === 3 ? "DPCM" : "PPI";
+        meta.dpi = x === y ? `${x} ${unitLabel}` : `${x}×${y} ${unitLabel}`;
+      }
+
+      const cs = parsed.ColorSpace;
+      if (cs === 1) meta.colorSpace = "sRGB";
+      else if (cs === 65535) meta.colorSpace = "Uncalibrated";
+      else if (typeof cs === "number") meta.colorSpace = `ColorSpace ${cs}`;
+
+      const fl = parsed.FocalLength;
+      if (typeof fl === "number" && Number.isFinite(fl)) {
+        meta.focalLength = `${fl.toFixed(1)} mm`;
+      }
+
+      const dt =
+        parsed.DateTimeOriginal ||
+        parsed.CreateDate ||
+        parsed.ModifyDate ||
+        parsed.DateTime;
+      if (dt instanceof Date && !Number.isNaN(dt.getTime())) {
+        meta.timestamp = dt.toLocaleString();
+      } else if (typeof dt === "string" && dt.trim() !== "") {
+        meta.timestamp = dt;
+      }
+
+      const o = parsed.Orientation;
+      if (typeof o === "number") {
+        const map: Record<number, string> = {
+          1: "Normal",
+          2: "Mirrored",
+          3: "Rotated 180°",
+          4: "Mirrored 180°",
+          5: "Mirrored 90°",
+          6: "Rotated 90°",
+          7: "Mirrored 270°",
+          8: "Rotated 270°",
+        };
+        meta.exifOrientation = map[o] || `Orientation ${o}`;
+      }
+    }
+  } catch {
+    // ignore EXIF failures; we still may have PNG info
+  }
+
+  return meta;
+}
 
 function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
@@ -88,12 +235,14 @@ const Index = () => {
       // Fetch to get size and content-type
       let sizeKB = 0;
       let format = "unknown";
+      let meta: ExtractedMeta = {};
       try {
         const res = await fetch(trimmed, { mode: "cors" });
         const contentType = res.headers.get("content-type") || "";
         format = getFormatFromContentType(contentType);
         const blob = await res.blob();
         sizeKB = Math.round(blob.size / 1024);
+        meta = await extractMetadata(blob, contentType);
       } catch {
         sizeKB = 0;
       }
@@ -110,6 +259,7 @@ const Index = () => {
         aspectRatio: `${img.naturalWidth / g}:${img.naturalHeight / g}`,
         format,
         fileName: urlName,
+        ...meta,
       };
 
       setImages((prev) => [...prev, data]);
@@ -153,10 +303,11 @@ const Index = () => {
                     return;
                   }
                   const img = new window.Image();
-                  img.onload = () => {
+                  img.onload = async () => {
                     const g = gcd(img.naturalWidth, img.naturalHeight);
                     const sizeKB = Math.round(file.size / 1024);
                     const format = getFormatFromContentType(file.type || "");
+                    const meta = await extractMetadata(file, file.type || "");
                     resolve({
                       id: crypto.randomUUID(),
                       url: result,
@@ -166,6 +317,7 @@ const Index = () => {
                       aspectRatio: `${img.naturalWidth / g}:${img.naturalHeight / g}`,
                       format,
                       fileName: file.name,
+                      ...meta,
                     });
                   };
                   img.onerror = () => {
@@ -356,15 +508,19 @@ const Index = () => {
       <header className="border-b border-border bg-card">
         <div className="container max-w-6xl py-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center">
+            <a
+              href="/"
+              aria-label="PicPeek home"
+              className="relative z-10 h-12 w-12 shrink-0 rounded-lg bg-primary flex items-center justify-center cursor-pointer select-none touch-manipulation active:scale-95 transition-transform"
+            >
               <img
                 src="/picpeek.png"
-                className="rounded-md"
+                className="rounded-md pointer-events-none"
                 alt="PicPeek"
                 width={40}
                 height={40}
               />
-            </div>
+            </a>
 
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">
