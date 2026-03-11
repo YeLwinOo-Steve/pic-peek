@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BadgeCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { BadgeCheck, Sparkles, Laugh, Frown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -23,15 +23,21 @@ function computeHealth(image: ImageData): {
   score: number;
   issues: string[];
   positives: string[];
+  recommendations: string[];
 } {
   const issues: string[] = [];
   const positives: string[] = [];
+  const recommendations: string[] = [];
   const mp = (image.width * image.height) / 1e6;
   const format = (image.format || "").toLowerCase();
+  const pixels = image.width * image.height || 1;
+  const bpp = (image.sizeKB * 1024) / pixels;
+  const maxDim = Math.max(image.width, image.height);
 
   // Resolution
   if (mp < 0.3) {
     issues.push("Low resolution");
+    recommendations.push("Use at least 0.5 MP (e.g. 800×600) for clear display.");
   } else if (mp >= 1) {
     positives.push("Good resolution");
   }
@@ -39,17 +45,30 @@ function computeHealth(image: ImageData): {
     positives.push("Great resolution");
   }
 
+  // Dimensions for web
+  if (maxDim > 4096) {
+    issues.push("Very large dimensions");
+    recommendations.push("Resize to max 2048–4096px on the long side for web to reduce size and load time.");
+  } else if (maxDim > 2048 && (format === "jpeg" || format === "png")) {
+    recommendations.push("Consider resizing to 1920–2048px for typical web use.");
+  }
+
   // Format
   if (format === "png" && image.sizeKB > 400) {
     issues.push("PNG used for photo (consider JPEG/WebP for smaller size)");
+    recommendations.push("Convert to WebP or JPEG for 30–50% smaller file size at similar quality.");
   }
   if (format === "jpeg" || format === "webp") {
     positives.push("Web-friendly format");
+  }
+  if (format === "png" && image.hasAlpha === false) {
+    recommendations.push("No transparency needed — JPEG or WebP would be smaller than PNG.");
   }
 
   // File size
   if (image.sizeKB > 2000) {
     issues.push("High file size");
+    recommendations.push("Compress or convert to WebP; aim for under 200–500 KB for web.");
   } else if (image.sizeKB <= 800 && mp >= 0.5) {
     positives.push("Reasonable file size");
   }
@@ -58,10 +77,40 @@ function computeHealth(image: ImageData): {
   }
 
   // Bytes per pixel (efficiency)
-  const pixels = image.width * image.height || 1;
-  const bpp = (image.sizeKB * 1024) / pixels;
   if (bpp > 4 && format === "png") {
     issues.push("Inefficient compression");
+    recommendations.push("Re-export PNG with higher compression or use TinyPNG/squoosh.");
+  }
+
+  // Over-compression (high MP but very small file)
+  if (mp >= 2 && image.sizeKB < 100) {
+    issues.push("Likely over-compressed");
+    recommendations.push("Quality may be low; use higher JPEG/WebP quality or less aggressive compression.");
+  }
+
+  // Aspect ratio
+  const ratio = image.width / (image.height || 1);
+  const isCommonRatio =
+    Math.abs(ratio - 16 / 9) < 0.05 ||
+    Math.abs(ratio - 4 / 3) < 0.05 ||
+    Math.abs(ratio - 1) < 0.05;
+  if (isCommonRatio) {
+    positives.push("Common aspect ratio (display-friendly)");
+  }
+
+  // Color space
+  if (image.colorSpace && image.colorSpace.toLowerCase().includes("srgb")) {
+    positives.push("sRGB color space (good for web)");
+  } else if (image.colorSpace && !image.colorSpace.toLowerCase().includes("unknown")) {
+    recommendations.push("Convert to sRGB for consistent web display.");
+  }
+
+  // DPI
+  if (image.dpi && image.dpi !== "Unknown") {
+    const dpiNum = parseInt(image.dpi, 10);
+    if (!Number.isNaN(dpiNum) && dpiNum > 300) {
+      recommendations.push("DPI > 300 is for print; 72–150 is enough for screen.");
+    }
   }
 
   // Score: base 70, -12 per issue, +8 per positive, clamp 0–100
@@ -70,7 +119,7 @@ function computeHealth(image: ImageData): {
   score += positives.length * 8;
   score = Math.round(Math.max(0, Math.min(100, score)));
 
-  return { score, issues, positives };
+  return { score, issues, positives, recommendations };
 }
 
 export function ImageHealthScore({
@@ -80,7 +129,7 @@ export function ImageHealthScore({
   compact,
   className,
 }: ImageHealthScoreProps) {
-  const { score, issues, positives } = useMemo(
+  const { score, issues, positives, recommendations } = useMemo(
     () => computeHealth(image),
     [image],
   );
@@ -140,7 +189,7 @@ export function ImageHealthScore({
                     key={i}
                     className="flex items-start gap-2 text-sm text-emerald-700 dark:text-emerald-400/95"
                   >
-                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                    <Laugh className="h-4 w-4 shrink-0 mt-0.5" />
                     <span>{text}</span>
                   </li>
                 ))}
@@ -158,7 +207,7 @@ export function ImageHealthScore({
                     key={i}
                     className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400/95"
                   >
-                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <Frown className="h-4 w-4 shrink-0 mt-0.5" />
                     <span>{text}</span>
                   </li>
                 ))}
@@ -170,6 +219,25 @@ export function ImageHealthScore({
             <p className="text-sm text-muted-foreground">
               No specific issues or highlights for this image.
             </p>
+          )}
+
+          {recommendations.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-border/60">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                Recommendations 
+              </p>
+              <ul className="space-y-1.5">
+                {recommendations.map((text, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-xs text-muted-foreground"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" />
+                    <span>{text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       </PopoverContent>
