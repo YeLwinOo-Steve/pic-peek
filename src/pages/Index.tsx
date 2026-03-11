@@ -21,8 +21,12 @@ const Index = () => {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [copyState, setCopyState] = useState<"idle" | "loading" | "success">("idle");
-  const [downloadState, setDownloadState] = useState<"idle" | "loading" | "success">("idle");
+  const [copyState, setCopyState] = useState<"idle" | "loading" | "success">(
+    "idle",
+  );
+  const [downloadState, setDownloadState] = useState<
+    "idle" | "loading" | "success"
+  >("idle");
   const [comparisonPadding, setComparisonPadding] = useState(24);
   const gridRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -60,7 +64,8 @@ const Index = () => {
       }
 
       const g = gcd(img.naturalWidth, img.naturalHeight);
-      const urlName = trimmed.split("/").pop()?.split("?")[0] || trimmed.slice(0, 40);
+      const urlName =
+        trimmed.split("/").pop()?.split("?")[0] || trimmed.slice(0, 40);
       const data: ImageData = {
         id: crypto.randomUUID(),
         url: trimmed,
@@ -78,7 +83,8 @@ const Index = () => {
       toast.success("Image added!");
     } catch {
       toast.error("Could not load image. Check the URL.", {
-        description: "The image URL may be invalid or the image is not accessible.",
+        description:
+          "The image URL may be invalid or the image is not accessible.",
       });
     } finally {
       setLoading(false);
@@ -130,10 +136,12 @@ const Index = () => {
                       ...meta,
                     });
                   };
-                  img.onerror = () => reject(new Error("Failed to load image file"));
+                  img.onerror = () =>
+                    reject(new Error("Failed to load image file"));
                   img.src = result;
                 };
-                reader.onerror = () => reject(new Error("Failed to read image file"));
+                reader.onerror = () =>
+                  reject(new Error("Failed to read image file"));
                 reader.readAsDataURL(file);
               }),
           ),
@@ -192,7 +200,9 @@ const Index = () => {
         setTimeout(() => setCopyState("idle"), 1000);
       }, "image/png");
     } catch {
-      toast.error("Copy failed — your browser may not support image clipboard.");
+      toast.error(
+        "Copy failed — your browser may not support image clipboard.",
+      );
       setCopyState("idle");
     }
   };
@@ -229,22 +239,41 @@ const Index = () => {
         />
         <link rel="canonical" href="https://picpeek.yl0.me/" />
 
-        <meta property="og:title" content="PicPeek — Compare images side by side" />
+        <meta
+          property="og:title"
+          content="PicPeek — Compare images side by side"
+        />
         <meta
           property="og:description"
           content="Compare up to 9 images side by side — paste a URL or upload files."
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://picpeek.yl0.me/" />
-        <meta property="og:image" content="https://picpeek.yl0.me/picpeek.png" />
+        <meta
+          property="og:image"
+          content="https://picpeek.yl0.me/picpeek.png"
+        />
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="PicPeek — Compare images side by side" />
+        <meta
+          name="twitter:title"
+          content="PicPeek — Compare images side by side"
+        />
         <meta
           name="twitter:description"
           content="Compare up to 9 images side by side — paste a URL or upload files."
         />
-        <meta name="twitter:image" content="https://picpeek.yl0.me/picpeek.png" />
+        <meta
+          name="twitter:image"
+          content="https://picpeek.yl0.me/picpeek.png"
+        />
+        <Helmet>
+          <script
+            defer
+            src={import.meta.env.VITE_UMAMI_SRC}
+            data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
+          />
+        </Helmet>
       </Helmet>
 
       <Header />

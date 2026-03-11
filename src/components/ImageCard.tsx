@@ -213,10 +213,10 @@ const ImageCard = ({ image, allImages, showAdvanced, isBest, onRemove }: ImageCa
           <Property label="Format" value={image.format.toUpperCase()} />
           <div
             aria-hidden={!showAdvanced}
-            className={`col-span-2 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out will-change-[max-height,opacity,transform] ${
+            className={`col-span-2 overflow-hidden transition-[max-height,opacity] duration-300 ease-out will-change-[max-height,opacity] ${
               showAdvanced
-                ? "max-h-[520px] opacity-100 translate-y-0"
-                : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"
+                ? "max-h-[520px] opacity-100"
+                : "max-h-0 opacity-0 pointer-events-none"
             }`.trim()}
           >
             <div className="rounded-xl border border-amber-500/40 p-3">
