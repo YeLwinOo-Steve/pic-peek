@@ -36,7 +36,9 @@ function fmtMaybeNumber(n: unknown, digits = 0): string | null {
   return n.toFixed(digits);
 }
 
-function parsePngMeta(buf: ArrayBuffer): Pick<ExtractedMeta, "bitDepth" | "dpi" | "colorSpace"> {
+function parsePngMeta(
+  buf: ArrayBuffer,
+): Pick<ExtractedMeta, "bitDepth" | "dpi" | "colorSpace"> {
   // PNG signature (8 bytes) then chunks
   const u8 = new Uint8Array(buf);
   const sig = [137, 80, 78, 71, 13, 10, 26, 10];
@@ -91,7 +93,10 @@ function parsePngMeta(buf: ArrayBuffer): Pick<ExtractedMeta, "bitDepth" | "dpi" 
   return { bitDepth, dpi, colorSpace };
 }
 
-async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<ExtractedMeta> {
+async function extractMetadata(
+  blob: Blob,
+  contentTypeHint?: string,
+): Promise<ExtractedMeta> {
   const meta: ExtractedMeta = {};
   const buf = await blob.arrayBuffer();
 
@@ -110,7 +115,8 @@ async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<Ex
     );
 
     if (parsed) {
-      const bits = parsed.BitsPerSample ?? parsed.BitsPerPixel ?? parsed.BitsPerChannel;
+      const bits =
+        parsed.BitsPerSample ?? parsed.BitsPerPixel ?? parsed.BitsPerChannel;
       if (Array.isArray(bits) && bits.length > 0) {
         meta.bitDepth = `${bits.join("/")}-bit`;
       } else if (typeof bits === "number") {
@@ -123,8 +129,7 @@ async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<Ex
       const x = fmtMaybeNumber(xRes, 0);
       const y = fmtMaybeNumber(yRes, 0);
       if (x && y) {
-        const unitLabel =
-          unit === 2 ? "DPI" : unit === 3 ? "DPCM" : "PPI";
+        const unitLabel = unit === 2 ? "DPI" : unit === 3 ? "DPCM" : "PPI";
         meta.dpi = x === y ? `${x} ${unitLabel}` : `${x}×${y} ${unitLabel}`;
       }
 
@@ -177,7 +182,10 @@ async function extractMetadata(blob: Blob, contentTypeHint?: string): Promise<Ex
       meta.bitDepth = "8-bit (typical)";
     }
   }
-  if (!meta.colorSpace && (format === "jpeg" || format === "webp" || format === "png")) {
+  if (
+    !meta.colorSpace &&
+    (format === "jpeg" || format === "webp" || format === "png")
+  ) {
     meta.colorSpace = "sRGB (assumed)";
   }
 
@@ -450,7 +458,7 @@ const Index = () => {
     ctx.font = `${fontSize}px "Shantell Sans", cursive, sans-serif`;
     ctx.textBaseline = "bottom";
 
-    const watermarkText = "PicPeek";
+    const watermarkText = "picpeek.yl0.me";
     const textMetrics = ctx.measureText(watermarkText);
     const textWidth = textMetrics.width;
     const x = outCanvas.width - textWidth - padding;
@@ -495,7 +503,7 @@ const Index = () => {
         ]);
         toast.success("Comparison image copied to clipboard!");
         setCopyState("success");
-        setTimeout(() => setCopyState("idle"), 200);
+        setTimeout(() => setCopyState("idle"), 1000);
       }, "image/png");
     } catch {
       toast.error(
@@ -516,7 +524,7 @@ const Index = () => {
       link.click();
       toast.success("Downloaded!");
       setDownloadState("success");
-      setTimeout(() => setDownloadState("idle"), 200);
+      setTimeout(() => setDownloadState("idle"), 1000);
     } catch {
       toast.error("Download failed — try copying instead.");
       setDownloadState("idle");
@@ -568,267 +576,268 @@ const Index = () => {
       </header>
 
       <main className="flex-1 flex flex-col">
-      {/* Input */}
-      <div className="container max-w-6xl py-6">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            addImage();
-          }}
-          className="flex items-center gap-2"
-        >
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="hidden sm:inline-flex"
-            >
-              <ImageIcon className="h-4 w-4 mr-1" /> Upload Image
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex sm:hidden"
-              aria-label="Upload image"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </Button>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-          <Input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste image URL here…"
-            className="flex-1 rounded-full py-2"
-            disabled={loading}
-          />
-
-          <div className="flex items-center gap-2">
-            <Button
-              type="submit"
-              disabled={loading || !url.trim()}
-              className="hidden sm:inline-flex"
-            >
-              <CornerDownRight className="h-4 w-4 mr-1" />
-              {loading ? "Loading…" : "Compare"}
-            </Button>
-            <Button
-              type="submit"
-              size="icon"
-              variant="default"
-              disabled={loading || !url.trim()}
-              className="inline-flex sm:hidden"
-              aria-label="Compare"
-            >
-              <CornerDownRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
-
-        {images.length > 0 && (
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-nowrap sm:gap-4">
-            {/* Mobile: row 1 (actions + count). Desktop: same row as toggles */}
-            <div className="flex items-center justify-between gap-2 sm:justify-start sm:flex-nowrap">
-              <div className="flex items-center gap-2">
-              {/* Copy */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyComparison}
-                disabled={copyState === "loading"}
-                className="hidden sm:inline-flex"
-              >
-                {copyState === "loading" ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : copyState === "success" ? (
-                  <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
-                ) : (
-                  <Copy className="h-4 w-4 mr-1" />
-                )}
-                {copyState === "loading"
-                  ? "Copying…"
-                  : copyState === "success"
-                    ? "Copied!"
-                    : "Copy"}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={copyComparison}
-                disabled={copyState === "loading"}
-                className="inline-flex sm:hidden"
-                aria-label={copyState === "loading" ? "Copying" : "Copy"}
-              >
-                {copyState === "loading" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : copyState === "success" ? (
-                  <CircleCheckBig className="h-4 w-4 text-emerald-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-
-              {/* Download */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadComparison}
-                disabled={downloadState === "loading"}
-                className="hidden sm:inline-flex"
-              >
-                {downloadState === "loading" ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : downloadState === "success" ? (
-                  <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
-                ) : (
-                  <Download className="h-4 w-4 mr-1" />
-                )}
-                {downloadState === "loading"
-                  ? "Downloading…"
-                  : downloadState === "success"
-                    ? "Downloaded!"
-                    : "Download"}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={downloadComparison}
-                disabled={downloadState === "loading"}
-                className="inline-flex sm:hidden"
-                aria-label={downloadState === "loading" ? "Downloading" : "Download"}
-              >
-                {downloadState === "loading" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : downloadState === "success" ? (
-                  <CircleCheckBig className="h-4 w-4 text-emerald-500" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-              </Button>
-
-              {/* Clear */}
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={clearAll}
-                className="hidden sm:inline-flex"
-              >
-                <Trash2 className="h-4 w-4 mr-1" /> Clear All
-              </Button>
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={clearAll}
-                className="inline-flex sm:hidden"
-                aria-label="Clear all"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-              </div>
-
-              <span className="text-sm text-muted-foreground whitespace-nowrap sm:hidden">
-                {images.length}/9 images
-              </span>
-            </div>
-
-            {/* Mobile: row 2 (toggles). Desktop: same row, right side */}
-            <div className="flex items-center gap-3 sm:ml-auto sm:flex-nowrap sm:min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
-                  Advanced
-                </span>
-                <span className="text-xs text-muted-foreground whitespace-nowrap sm:hidden">
-                  Adv.
-                </span>
-                <Switch
-                  checked={showAdvanced}
-                  onCheckedChange={setShowAdvanced}
-                  aria-label="Toggle advanced mode"
-                />
-              </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                Padding
-              </span>
-              <div className="flex-1 sm:flex-none sm:w-32">
-                <Slider
-                  min={0}
-                  max={64}
-                  step={2}
-                  value={[comparisonPadding]}
-                  onValueChange={(vals) => {
-                    const [v] = vals;
-                    if (typeof v === "number") setComparisonPadding(v);
-                  }}
-                />
-              </div>
-              <span className="text-sm text-muted-foreground whitespace-nowrap hidden sm:inline">
-                {images.length}/9 images
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Grid */}
-      <div className="container max-w-6xl pb-12">
-        {images.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
-              <ImageIcon className="h-10 w-10 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground text-lg font-medium">
-              No images yet
-            </p>
-            <p className="text-muted-foreground text-sm">
-              Paste an image URL above to get started
-            </p>
-          </div>
-        ) : (
-          <div
-            ref={gridRef}
-            className="rounded-3xl border border-primary/30 bg-card/40"
-            style={{ padding: `${comparisonPadding}px` }}
+        {/* Input */}
+        <div className="container max-w-6xl py-6">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              addImage();
+            }}
+            className="flex items-center gap-2"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <AnimatePresence mode="popLayout">
-                {images.map((img) => (
-                  <motion.div
-                    key={img.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{
-                      layout: { type: "spring", stiffness: 350, damping: 30 },
-                      opacity: { duration: 0.2 },
-                      scale: { duration: 0.2 },
-                    }}
-                    className="min-w-0"
-                  >
-                    <ImageCard
-                      image={img}
-                      allImages={images}
-                      showAdvanced={showAdvanced}
-                      isBest={img.id === bestId}
-                      onRemove={removeImage}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="hidden sm:inline-flex"
+              >
+                <ImageIcon className="h-4 w-4 mr-1" /> Upload Image
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex sm:hidden"
+                aria-label="Upload image"
+              >
+                <ImageIcon className="h-4 w-4" />
+              </Button>
             </div>
-          </div>
-        )}
-      </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <Input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Paste image URL here…"
+              className="flex-1 rounded-full py-2"
+              disabled={loading}
+            />
 
+            <div className="flex items-center gap-2">
+              <Button
+                type="submit"
+                disabled={loading || !url.trim()}
+                className="hidden sm:inline-flex"
+              >
+                <CornerDownRight className="h-4 w-4 mr-1" />
+                {loading ? "Loading…" : "Compare"}
+              </Button>
+              <Button
+                type="submit"
+                size="icon"
+                variant="default"
+                disabled={loading || !url.trim()}
+                className="inline-flex sm:hidden"
+                aria-label="Compare"
+              >
+                <CornerDownRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </form>
+
+          {images.length > 0 && (
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-nowrap sm:gap-4">
+              {/* Mobile: row 1 (actions + count). Desktop: same row as toggles */}
+              <div className="flex items-center justify-between gap-2 sm:justify-start sm:flex-nowrap">
+                <div className="flex items-center gap-2">
+                  {/* Copy */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyComparison}
+                    disabled={copyState === "loading"}
+                    className="hidden sm:inline-flex"
+                  >
+                    {copyState === "loading" ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : copyState === "success" ? (
+                      <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-4 w-4 mr-1" />
+                    )}
+                    {copyState === "loading"
+                      ? "Copying…"
+                      : copyState === "success"
+                        ? "Copied!"
+                        : "Copy"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={copyComparison}
+                    disabled={copyState === "loading"}
+                    className="inline-flex sm:hidden"
+                    aria-label={copyState === "loading" ? "Copying" : "Copy"}
+                  >
+                    {copyState === "loading" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : copyState === "success" ? (
+                      <CircleCheckBig className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+
+                  {/* Download */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadComparison}
+                    disabled={downloadState === "loading"}
+                    className="hidden sm:inline-flex"
+                  >
+                    {downloadState === "loading" ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : downloadState === "success" ? (
+                      <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-1" />
+                    )}
+                    {downloadState === "loading"
+                      ? "Downloading…"
+                      : downloadState === "success"
+                        ? "Downloaded!"
+                        : "Download"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={downloadComparison}
+                    disabled={downloadState === "loading"}
+                    className="inline-flex sm:hidden"
+                    aria-label={
+                      downloadState === "loading" ? "Downloading" : "Download"
+                    }
+                  >
+                    {downloadState === "loading" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : downloadState === "success" ? (
+                      <CircleCheckBig className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                  </Button>
+
+                  {/* Clear */}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={clearAll}
+                    className="hidden sm:inline-flex"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Clear All
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={clearAll}
+                    className="inline-flex sm:hidden"
+                    aria-label="Clear all"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <span className="text-sm text-muted-foreground whitespace-nowrap sm:hidden">
+                  {images.length}/9 images
+                </span>
+              </div>
+
+              {/* Mobile: row 2 (toggles). Desktop: same row, right side */}
+              <div className="flex items-center gap-3 sm:ml-auto sm:flex-nowrap sm:min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                    Advanced
+                  </span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap sm:hidden">
+                    Adv.
+                  </span>
+                  <Switch
+                    checked={showAdvanced}
+                    onCheckedChange={setShowAdvanced}
+                    aria-label="Toggle advanced mode"
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  Padding
+                </span>
+                <div className="flex-1 sm:flex-none sm:w-32">
+                  <Slider
+                    min={0}
+                    max={64}
+                    step={2}
+                    value={[comparisonPadding]}
+                    onValueChange={(vals) => {
+                      const [v] = vals;
+                      if (typeof v === "number") setComparisonPadding(v);
+                    }}
+                  />
+                </div>
+                <span className="text-sm text-muted-foreground whitespace-nowrap hidden sm:inline">
+                  {images.length}/9 images
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Grid */}
+        <div className="container max-w-6xl pb-12">
+          {images.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                <ImageIcon className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground text-lg font-medium">
+                No images yet
+              </p>
+              <p className="text-muted-foreground text-sm">
+                Paste an image URL above to get started
+              </p>
+            </div>
+          ) : (
+            <div
+              ref={gridRef}
+              className="rounded-3xl border border-primary/30 bg-card/40"
+              style={{ padding: `${comparisonPadding}px` }}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <AnimatePresence mode="popLayout">
+                  {images.map((img) => (
+                    <motion.div
+                      key={img.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{
+                        layout: { type: "spring", stiffness: 350, damping: 30 },
+                        opacity: { duration: 0.2 },
+                        scale: { duration: 0.2 },
+                      }}
+                      className="min-w-0"
+                    >
+                      <ImageCard
+                        image={img}
+                        allImages={images}
+                        showAdvanced={showAdvanced}
+                        isBest={img.id === bestId}
+                        onRemove={removeImage}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+        </div>
       </main>
 
       <footer className="shrink-0 border-t border-border/60 py-6 mt-auto">
