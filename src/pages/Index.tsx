@@ -267,13 +267,11 @@ const Index = () => {
           name="twitter:image"
           content="https://picpeek.yl0.me/picpeek.png"
         />
-        <Helmet>
-          <script
-            defer
-            src={import.meta.env.VITE_UMAMI_SRC}
-            data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
-          />
-        </Helmet>
+        <script
+          defer
+          src={import.meta.env.VITE_UMAMI_SRC}
+          data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
+        />
       </Helmet>
 
       <Header />
