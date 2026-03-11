@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { BadgeCheck, Sparkles, Laugh, Frown } from "lucide-react";
+import { Sparkles, Laugh, Frown, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -37,7 +37,9 @@ function computeHealth(image: ImageData): {
   // Resolution
   if (mp < 0.3) {
     issues.push("Low resolution");
-    recommendations.push("Use at least 0.5 MP (e.g. 800×600) for clear display.");
+    recommendations.push(
+      "Use at least 0.5 MP (e.g. 800×600) for clear display.",
+    );
   } else if (mp >= 1) {
     positives.push("Good resolution");
   }
@@ -48,27 +50,37 @@ function computeHealth(image: ImageData): {
   // Dimensions for web
   if (maxDim > 4096) {
     issues.push("Very large dimensions");
-    recommendations.push("Resize to max 2048–4096px on the long side for web to reduce size and load time.");
+    recommendations.push(
+      "Resize to max 2048–4096px on the long side for web to reduce size and load time.",
+    );
   } else if (maxDim > 2048 && (format === "jpeg" || format === "png")) {
-    recommendations.push("Consider resizing to 1920–2048px for typical web use.");
+    recommendations.push(
+      "Consider resizing to 1920–2048px for typical web use.",
+    );
   }
 
   // Format
   if (format === "png" && image.sizeKB > 400) {
     issues.push("PNG used for photo (consider JPEG/WebP for smaller size)");
-    recommendations.push("Convert to WebP or JPEG for 30–50% smaller file size at similar quality.");
+    recommendations.push(
+      "Convert to WebP or JPEG for 30–50% smaller file size at similar quality.",
+    );
   }
   if (format === "jpeg" || format === "webp") {
     positives.push("Web-friendly format");
   }
   if (format === "png" && image.hasAlpha === false) {
-    recommendations.push("No transparency needed — JPEG or WebP would be smaller than PNG.");
+    recommendations.push(
+      "No transparency needed — JPEG or WebP would be smaller than PNG.",
+    );
   }
 
   // File size
   if (image.sizeKB > 2000) {
     issues.push("High file size");
-    recommendations.push("Compress or convert to WebP; aim for under 200–500 KB for web.");
+    recommendations.push(
+      "Compress or convert to WebP; aim for under 200–500 KB for web.",
+    );
   } else if (image.sizeKB <= 800 && mp >= 0.5) {
     positives.push("Reasonable file size");
   }
@@ -79,13 +91,17 @@ function computeHealth(image: ImageData): {
   // Bytes per pixel (efficiency)
   if (bpp > 4 && format === "png") {
     issues.push("Inefficient compression");
-    recommendations.push("Re-export PNG with higher compression or use TinyPNG/squoosh.");
+    recommendations.push(
+      "Re-export PNG with higher compression or use TinyPNG/squoosh.",
+    );
   }
 
   // Over-compression (high MP but very small file)
   if (mp >= 2 && image.sizeKB < 100) {
     issues.push("Likely over-compressed");
-    recommendations.push("Quality may be low; use higher JPEG/WebP quality or less aggressive compression.");
+    recommendations.push(
+      "Quality may be low; use higher JPEG/WebP quality or less aggressive compression.",
+    );
   }
 
   // Aspect ratio
@@ -101,7 +117,10 @@ function computeHealth(image: ImageData): {
   // Color space
   if (image.colorSpace && image.colorSpace.toLowerCase().includes("srgb")) {
     positives.push("sRGB color space (good for web)");
-  } else if (image.colorSpace && !image.colorSpace.toLowerCase().includes("unknown")) {
+  } else if (
+    image.colorSpace &&
+    !image.colorSpace.toLowerCase().includes("unknown")
+  ) {
     recommendations.push("Convert to sRGB for consistent web display.");
   }
 
@@ -109,7 +128,9 @@ function computeHealth(image: ImageData): {
   if (image.dpi && image.dpi !== "Unknown") {
     const dpiNum = parseInt(image.dpi, 10);
     if (!Number.isNaN(dpiNum) && dpiNum > 300) {
-      recommendations.push("DPI > 300 is for print; 72–150 is enough for screen.");
+      recommendations.push(
+        "DPI > 300 is for print; 72–150 is enough for screen.",
+      );
     }
   }
 
@@ -140,12 +161,12 @@ export function ImageHealthScore({
       size="icon"
       className={
         compact
-          ? "h-8 w-8 shrink-0 rounded-full border border-border/50 bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-primary"
+          ? "h-8 w-8 shrink-0 rounded-full border border-border/50 bg-muted/50 text-primary hover:text-white hover:bg-primary"
           : "h-7 w-7 rounded-full bg-background/90 border border-border/60 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
       }
       aria-label="Image health score"
     >
-      <BadgeCheck className="h-8 w-8" />
+      <Activity className="h-8 w-8" />
     </Button>
   );
 
@@ -224,7 +245,7 @@ export function ImageHealthScore({
           {recommendations.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-border/60">
               <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                Recommendations 
+                Recommendations
               </p>
               <ul className="space-y-1.5">
                 {recommendations.map((text, i) => (
