@@ -505,9 +505,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="bg-background">
+      <header className="shrink-0 bg-background">
         <div className="container max-w-6xl py-6">
           <div className="flex items-center gap-3 mb-1">
             <a
@@ -548,6 +548,7 @@ const Index = () => {
         </div>
       </header>
 
+      <main className="flex-1 flex flex-col">
       {/* Input */}
       <div className="container max-w-6xl py-6">
         <form
@@ -809,7 +810,9 @@ const Index = () => {
         )}
       </div>
 
-      <footer>
+      </main>
+
+      <footer className="shrink-0 border-t border-border/60 py-6 mt-auto">
         <div className="container max-w-6xl text-center text-xs text-muted-foreground">
           © 2026{" "}
           <a

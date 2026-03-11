@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useMemo, useState } from "react";
 import { X, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ImageHealthScore } from "@/components/ImageHealthScore";
 
 export interface ImageData {
   id: string;
@@ -329,9 +330,14 @@ const ImageCard = ({ image, allImages, showAdvanced, isBest, onRemove }: ImageCa
               </div>
             </div>
           </div>
-          {image.fileName != null && image.fileName !== "" && (
-            <Property label="File Name" value={image.fileName} className="col-span-2 truncate" />
-          )}
+          <div className="col-span-2 flex items-center gap-2 min-w-0">
+            <Property
+              label="File Name"
+              value={image.fileName != null && image.fileName !== "" ? image.fileName : "—"}
+              className="flex-1 min-w-0 truncate"
+            />
+            <ImageHealthScore image={image} side="top" compact />
+          </div>
         </div>
         <p className="text-[11px] text-muted-foreground truncate pt-2 border-t border-border/60">{image.url}</p>
       </CardContent>
