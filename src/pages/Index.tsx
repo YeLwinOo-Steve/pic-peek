@@ -386,11 +386,27 @@ const Index = () => {
             e.preventDefault();
             addImage();
           }}
-          className="flex gap-2"
+          className="flex items-center gap-2"
         >
-          <Button type="button" onClick={() => fileInputRef.current?.click()}>
-            <ImageIcon className="h-4 w-4 mr-1" /> Upload Image
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="hidden sm:inline-flex"
+            >
+              <ImageIcon className="h-4 w-4 mr-1" /> Upload Image
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex sm:hidden"
+              aria-label="Upload image"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -407,59 +423,142 @@ const Index = () => {
             disabled={loading}
           />
 
-          <Button type="submit" disabled={loading || !url.trim()}>
-            <CornerDownRight className="h-4 w-4 mr-1" />
-            {loading ? "Loading…" : "Compare"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="submit"
+              disabled={loading || !url.trim()}
+              className="hidden sm:inline-flex"
+            >
+              <CornerDownRight className="h-4 w-4 mr-1" />
+              {loading ? "Loading…" : "Compare"}
+            </Button>
+            <Button
+              type="submit"
+              size="icon"
+              variant="default"
+              disabled={loading || !url.trim()}
+              className="inline-flex sm:hidden"
+              aria-label="Compare"
+            >
+              <CornerDownRight className="h-4 w-4" />
+            </Button>
+          </div>
         </form>
 
         {images.length > 0 && (
-          <div className="flex gap-2 mt-4 flex-wrap items-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyComparison}
-              disabled={copyState === "loading"}
-            >
-              {copyState === "loading" ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : copyState === "success" ? (
-                <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
-              ) : (
-                <Copy className="h-4 w-4 mr-1" />
-              )}
-              {copyState === "loading"
-                ? "Copying…"
-                : copyState === "success"
-                  ? "Copied!"
-                  : "Copy"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={downloadComparison}
-              disabled={downloadState === "loading"}
-            >
-              {downloadState === "loading" ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : downloadState === "success" ? (
-                <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
-              ) : (
-                <Download className="h-4 w-4 mr-1" />
-              )}
-              {downloadState === "loading"
-                ? "Downloading…"
-                : downloadState === "success"
-                  ? "Downloaded!"
-                  : "Download"}
-            </Button>
-            <Button variant="destructive" size="sm" onClick={clearAll}>
-              <Trash2 className="h-4 w-4 mr-1" /> Clear All
-            </Button>
-            <div className="ml-auto flex items-center gap-3 min-w-[180px]">
+          <div className="mt-4 flex flex-col gap-3">
+            {/* Mobile: row 1 (actions + count). Desktop: actions inline */}
+            <div className="flex items-center justify-between gap-2 sm:justify-start sm:flex-wrap">
+              <div className="flex items-center gap-2">
+              {/* Copy */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyComparison}
+                disabled={copyState === "loading"}
+                className="hidden sm:inline-flex"
+              >
+                {copyState === "loading" ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : copyState === "success" ? (
+                  <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
+                ) : (
+                  <Copy className="h-4 w-4 mr-1" />
+                )}
+                {copyState === "loading"
+                  ? "Copying…"
+                  : copyState === "success"
+                    ? "Copied!"
+                    : "Copy"}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={copyComparison}
+                disabled={copyState === "loading"}
+                className="inline-flex sm:hidden"
+                aria-label={copyState === "loading" ? "Copying" : "Copy"}
+              >
+                {copyState === "loading" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : copyState === "success" ? (
+                  <CircleCheckBig className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+
+              {/* Download */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadComparison}
+                disabled={downloadState === "loading"}
+                className="hidden sm:inline-flex"
+              >
+                {downloadState === "loading" ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : downloadState === "success" ? (
+                  <CircleCheckBig className="h-4 w-4 mr-1 text-emerald-500" />
+                ) : (
+                  <Download className="h-4 w-4 mr-1" />
+                )}
+                {downloadState === "loading"
+                  ? "Downloading…"
+                  : downloadState === "success"
+                    ? "Downloaded!"
+                    : "Download"}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={downloadComparison}
+                disabled={downloadState === "loading"}
+                className="inline-flex sm:hidden"
+                aria-label={downloadState === "loading" ? "Downloading" : "Download"}
+              >
+                {downloadState === "loading" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : downloadState === "success" ? (
+                  <CircleCheckBig className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+              </Button>
+
+              {/* Clear */}
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={clearAll}
+                className="hidden sm:inline-flex"
+              >
+                <Trash2 className="h-4 w-4 mr-1" /> Clear All
+              </Button>
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={clearAll}
+                className="inline-flex sm:hidden"
+                aria-label="Clear all"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              </div>
+
+              <span className="text-sm text-muted-foreground whitespace-nowrap sm:ml-auto">
+                {images.length}/9 images
+              </span>
+            </div>
+
+            {/* Mobile: row 2 (toggles). Desktop: align right */}
+            <div className="flex items-center gap-3 sm:ml-auto sm:min-w-[240px]">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
                   Advanced
+                </span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap sm:hidden">
+                  Adv.
                 </span>
                 <Switch
                   checked={showAdvanced}
@@ -467,10 +566,10 @@ const Index = () => {
                   aria-label="Toggle advanced mode"
                 />
               </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
                 Padding
               </span>
-              <div className="w-32">
+              <div className="flex-1 sm:flex-none sm:w-32">
                 <Slider
                   min={0}
                   max={64}
@@ -482,9 +581,6 @@ const Index = () => {
                   }}
                 />
               </div>
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {images.length}/9 images
-              </span>
             </div>
           </div>
         )}

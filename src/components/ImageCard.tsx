@@ -217,10 +217,19 @@ const ImageCard = ({ image, allImages, showAdvanced, isBest, onRemove }: ImageCa
             isBest={best.bytesPerPx}
           />
           <Property label="Format" value={image.format.toUpperCase()} />
-          {showAdvanced && (
-            <div className="col-span-2 rounded-xl border border-amber-500/40 p-3">
+          <div
+            aria-hidden={!showAdvanced}
+            className={`col-span-2 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out will-change-[max-height,opacity,transform] ${
+              showAdvanced
+                ? "max-h-[520px] opacity-100 translate-y-0"
+                : "max-h-0 opacity-0 -translate-y-1 pointer-events-none"
+            }`.trim()}
+          >
+            <div className="rounded-xl border border-amber-500/40 p-3">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-semibold text-foreground">Advanced Properties</div>
+                <div className="text-xs font-semibold text-foreground">
+                  Advanced Properties
+                </div>
                 <div className="text-[11px] text-muted-foreground">
                   {advanced.status === "loading"
                     ? "Analyzing…"
@@ -292,7 +301,7 @@ const ImageCard = ({ image, allImages, showAdvanced, isBest, onRemove }: ImageCa
                 </div>
               </div>
             </div>
-          )}
+          </div>
           {image.fileName != null && image.fileName !== "" && (
             <Property label="File Name" value={image.fileName} className="col-span-2 truncate" />
           )}
