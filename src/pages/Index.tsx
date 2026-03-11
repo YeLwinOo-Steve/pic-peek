@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, type ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   CornerDownRight,
@@ -55,6 +56,7 @@ const Index = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "loading" | "success">(
     "idle",
   );
@@ -455,6 +457,16 @@ const Index = () => {
               <Trash2 className="h-4 w-4 mr-1" /> Clear All
             </Button>
             <div className="ml-auto flex items-center gap-3 min-w-[180px]">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                  Advanced
+                </span>
+                <Switch
+                  checked={showAdvanced}
+                  onCheckedChange={setShowAdvanced}
+                  aria-label="Toggle advanced mode"
+                />
+              </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
                 Padding
               </span>
@@ -504,6 +516,7 @@ const Index = () => {
                   key={img.id}
                   image={img}
                   allImages={images}
+                  showAdvanced={showAdvanced}
                   isBest={img.id === bestId}
                   onRemove={removeImage}
                 />

@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 
+import { useEffect, useMemo, useState } from "react";
 import { X, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +19,7 @@ export interface ImageData {
 interface ImageCardProps {
   image: ImageData;
   allImages: ImageData[];
+  showAdvanced: boolean;
   isBest: boolean;
   onRemove: (id: string) => void;
 }
@@ -40,8 +42,142 @@ function getBestFlags(image: ImageData, allImages: ImageData[]) {
   };
 }
 
-const ImageCard = ({ image, allImages, isBest, onRemove }: ImageCardProps) => {
+type AdvancedInfo =
+  | {
+      status: "idle" | "loading";
+    }
+  | {
+      status: "unavailable";
+      reason: string;
+    }
+  | {
+      status: "ready";
+      hasAlpha: boolean;
+      dominantColors: string[];
+      histogram16: number[];
+      lumaMean: number;
+      lumaStd: number;
+    };
+
+function computeOrientation(width: number, height: number): string {
+  if (width === height) return "Square";
+  return width > height ? "Landscape" : "Portrait";
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const to = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${to(r)}${to(g)}${to(b)}`;
+}
+
+async function analyzeImagePixels(src: string): Promise<
+  | { ok: true; hasAlpha: boolean; dominantColors: string[]; histogram16: number[]; lumaMean: number; lumaStd: number }
+  | { ok: false; reason: string }
+> {
+  const img = new window.Image();
+  img.crossOrigin = "anonymous";
+  img.decoding = "async";
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Failed to load image for analysis"));
+    img.src = src;
+  });
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return { ok: false, reason: "Canvas not available" };
+
+  // Downsample for speed (still enough for dominant colors/histogram)
+  const maxDim = 96;
+  const scale = Math.min(1, maxDim / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+  const w = Math.max(1, Math.round((img.naturalWidth || 1) * scale));
+  const h = Math.max(1, Math.round((img.naturalHeight || 1) * scale));
+  canvas.width = w;
+  canvas.height = h;
+
+  try {
+    ctx.drawImage(img, 0, 0, w, h);
+    const { data } = ctx.getImageData(0, 0, w, h);
+
+    let hasAlpha = false;
+    const histogram16 = new Array<number>(16).fill(0);
+    const buckets = new Map<string, number>();
+
+    const lumas: number[] = [];
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i] ?? 0;
+      const g = data[i + 1] ?? 0;
+      const b = data[i + 2] ?? 0;
+      const a = data[i + 3] ?? 255;
+      if (a < 255) hasAlpha = true;
+
+      // Luma (Rec. 709)
+      const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      lumas.push(y);
+      const bin = Math.min(15, Math.floor(y / 16));
+      histogram16[bin] = (histogram16[bin] || 0) + 1;
+
+      // Dominant colors via quantized buckets
+      const qr = (r >> 4) << 4;
+      const qg = (g >> 4) << 4;
+      const qb = (b >> 4) << 4;
+      const key = rgbToHex(qr, qg, qb);
+      buckets.set(key, (buckets.get(key) || 0) + 1);
+    }
+
+    const mean = lumas.reduce((s, v) => s + v, 0) / (lumas.length || 1);
+    const variance =
+      lumas.reduce((s, v) => s + (v - mean) * (v - mean), 0) / (lumas.length || 1);
+    const std = Math.sqrt(variance);
+
+    const dominantColors = [...buckets.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([hex]) => hex);
+
+    return { ok: true, hasAlpha, dominantColors, histogram16, lumaMean: mean, lumaStd: std };
+  } catch {
+    return {
+      ok: false,
+      reason:
+        "Pixel analysis blocked (likely CORS). Try uploading the file instead of using a URL.",
+    };
+  }
+}
+
+const ImageCard = ({ image, allImages, showAdvanced, isBest, onRemove }: ImageCardProps) => {
   const best = getBestFlags(image, allImages);
+  const orientation = useMemo(
+    () => computeOrientation(image.width, image.height),
+    [image.width, image.height],
+  );
+  const [advanced, setAdvanced] = useState<AdvancedInfo>({ status: "idle" });
+
+  useEffect(() => {
+    if (!showAdvanced) return;
+    let cancelled = false;
+
+    (async () => {
+      setAdvanced({ status: "loading" });
+      const res = await analyzeImagePixels(image.url);
+      if (cancelled) return;
+      if (res.ok === false) {
+        setAdvanced({ status: "unavailable", reason: res.reason });
+        return;
+      }
+      setAdvanced({
+        status: "ready",
+        hasAlpha: res.hasAlpha,
+        dominantColors: res.dominantColors,
+        histogram16: res.histogram16,
+        lumaMean: res.lumaMean,
+        lumaStd: res.lumaStd,
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showAdvanced, image.url]);
 
   return (
     <Card className="relative overflow-hidden animate-fade-in group rounded-3xl shadow-none border-2 border-border/40 bg-gradient-to-b from-card to-card/95 ring-1 ring-inset ring-white/10">
@@ -81,6 +217,82 @@ const ImageCard = ({ image, allImages, isBest, onRemove }: ImageCardProps) => {
             isBest={best.bytesPerPx}
           />
           <Property label="Format" value={image.format.toUpperCase()} />
+          {showAdvanced && (
+            <div className="col-span-2 rounded-xl border border-amber-500/40 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-foreground">Advanced Properties</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {advanced.status === "loading"
+                    ? "Analyzing…"
+                    : advanced.status === "unavailable"
+                      ? "Unavailable"
+                      : ""}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <Property label="Bit Depth" value={"N/A"} />
+                <Property label="DPI/PPI" value={"N/A"} />
+                <Property label="Color Space" value={"N/A"} />
+                <Property
+                  label="Orientation"
+                  value={orientation}
+                />
+                <Property
+                  label="Timestamp"
+                  value={"N/A"}
+                />
+                <Property
+                  label="Focal Length"
+                  value={"N/A"}
+                />
+                <Property
+                  label="Alpha"
+                  value={
+                    advanced.status === "ready"
+                      ? advanced.hasAlpha
+                        ? "Yes"
+                        : "No"
+                      : advanced.status === "unavailable"
+                        ? "Unavailable"
+                        : showAdvanced
+                          ? "—"
+                          : "—"
+                  }
+                />
+                <Property
+                  label="Histogram"
+                  value={
+                    advanced.status === "ready"
+                      ? `μ ${advanced.lumaMean.toFixed(0)}, σ ${advanced.lumaStd.toFixed(0)}`
+                      : advanced.status === "unavailable"
+                        ? "Unavailable"
+                        : "—"
+                  }
+                />
+                <div className="col-span-2 flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/40 px-2.5 py-2">
+                  <span className="text-muted-foreground text-xs">Dominant colors</span>
+                  <div className="flex items-center gap-1.5">
+                    {advanced.status === "ready" ? (
+                      advanced.dominantColors.map((c) => (
+                        <div key={c} className="flex items-center gap-1">
+                          <span
+                            className="h-3 w-3 rounded-sm border border-border/60"
+                            style={{ backgroundColor: c }}
+                            title={c}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        {advanced.status === "unavailable" ? advanced.reason : "—"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {image.fileName != null && image.fileName !== "" && (
             <Property label="File Name" value={image.fileName} className="col-span-2 truncate" />
           )}
