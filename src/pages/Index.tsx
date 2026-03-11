@@ -6,6 +6,7 @@ import { gcd } from "@/utils/imageScore";
 import { scoreBest } from "@/utils/imageScore";
 import { extractMetadata } from "@/utils/imageMetadata";
 import { captureGrid } from "@/utils/captureGrid";
+import { Helmet } from "react-helmet-async";
 import {
   Header,
   ImageInputForm,
@@ -216,6 +217,36 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <Helmet>
+        <title>PicPeek — Compare images side by side</title>
+        <meta
+          name="description"
+          content="Compare up to 9 images side by side — paste a URL or upload files. Check dimensions, file size, format, and more."
+        />
+        <meta
+          name="keywords"
+          content="picpeek,Pic-Peek, pic peek, picture data, image data, image compare, compare images, image comparison, side by side images"
+        />
+        <link rel="canonical" href="https://picpeek.yl0.me/" />
+
+        <meta property="og:title" content="PicPeek — Compare images side by side" />
+        <meta
+          property="og:description"
+          content="Compare up to 9 images side by side — paste a URL or upload files."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://picpeek.yl0.me/" />
+        <meta property="og:image" content="https://picpeek.yl0.me/picpeek.png" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="PicPeek — Compare images side by side" />
+        <meta
+          name="twitter:description"
+          content="Compare up to 9 images side by side — paste a URL or upload files."
+        />
+        <meta name="twitter:image" content="https://picpeek.yl0.me/picpeek.png" />
+      </Helmet>
+
       <Header />
 
       <main className="flex-1 flex flex-col">
