@@ -97,6 +97,8 @@ const Index = () => {
       }
 
       const g = gcd(img.naturalWidth, img.naturalHeight);
+      const urlName =
+        trimmed.split("/").pop()?.split("?")[0] || trimmed.slice(0, 40);
       const data: ImageData = {
         id: crypto.randomUUID(),
         url: trimmed,
@@ -105,6 +107,7 @@ const Index = () => {
         sizeKB,
         aspectRatio: `${img.naturalWidth / g}:${img.naturalHeight / g}`,
         format,
+        fileName: urlName,
       };
 
       setImages((prev) => [...prev, data]);
@@ -160,6 +163,7 @@ const Index = () => {
                       sizeKB,
                       aspectRatio: `${img.naturalWidth / g}:${img.naturalHeight / g}`,
                       format,
+                      fileName: file.name,
                     });
                   };
                   img.onerror = () => {
@@ -350,16 +354,26 @@ const Index = () => {
       <header className="border-b border-border bg-card">
         <div className="container max-w-6xl py-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <ImageIcon className="h-5 w-5 text-primary-foreground" />
+            <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center">
+              <img
+                src="/picpeek.png"
+                className="rounded-md"
+                alt="PicPeek"
+                width={40}
+                height={40}
+              />
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-              PicPeek
-            </h1>
+
+            <div className="flex flex-col gap-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                PicPeek
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Compare up to 9 images side by side — paste a URL or upload
+                files.
+              </p>
+            </div>
           </div>
-          <p className="text-muted-foreground text-sm ml-[52px]">
-            Compare up to 9 images side by side — paste a URL or upload files.
-          </p>
         </div>
       </header>
 
@@ -372,10 +386,7 @@ const Index = () => {
           }}
           className="flex gap-2"
         >
-          <Button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-          >
+          <Button type="button" onClick={() => fileInputRef.current?.click()}>
             <ImageIcon className="h-4 w-4 mr-1" /> Upload Image
           </Button>
           <input
@@ -492,6 +503,7 @@ const Index = () => {
                 <ImageCard
                   key={img.id}
                   image={img}
+                  allImages={images}
                   isBest={img.id === bestId}
                   onRemove={removeImage}
                 />
