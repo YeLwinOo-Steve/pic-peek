@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type { ImageData } from "@/components/ImageCard";
+import type { ImageData } from "@/types/image";
 
 export interface ImageHealthScoreProps {
   image: ImageData;

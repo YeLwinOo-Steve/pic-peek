@@ -4,26 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { X, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageHealthScore } from "@/components/ImageHealthScore";
+import type { ImageData } from "@/types/image";
 
-export interface ImageData {
-  id: string;
-  url: string;
-  width: number;
-  height: number;
-  sizeKB: number;
-  aspectRatio: string;
-  format: string;
-  /** Optional display name (e.g. file name or URL basename). */
-  fileName?: string;
-  bitDepth?: string;
-  dpi?: string;
-  colorSpace?: string;
-  hasAlpha?: boolean;
-  histogram?: string;
-  focalLength?: string;
-  timestamp?: string;
-  exifOrientation?: string;
-}
+export type { ImageData };
 
 interface ImageCardProps {
   image: ImageData;
